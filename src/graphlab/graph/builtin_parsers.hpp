@@ -223,6 +223,49 @@ namespace graphlab {
     } // end of adj parser
 #endif
 
+    /**
+     * SNAP Adjacency List format parser, uses graph.add_vertex()
+     * needs to be used with edge-cut partitioners
+     */
+    template <typename Graph>
+    bool adj_ec_parser(Graph& graph, const std::string& srcfilename,
+                    const std::string& line) {
+      // If the line is empty simply skip it
+      if(line.empty()) return true;
+      
+       if (line[0] == '#') {
+        std::cout << line << std::endl;
+        return true;
+      }
+      
+      // We use the boost spirit parser which requires (too) many separate
+      // namespaces so to make things clear we shorten them here.
+      namespace qi = boost::spirit::qi;
+      namespace ascii = boost::spirit::ascii;
+      namespace phoenix = boost::phoenix;
+      vertex_id_type source(-1);
+      vertex_id_type ntargets(-1);
+      std::vector<vertex_id_type> targets;
+      const bool success = qi::phrase_parse
+        (line.begin(), line.end(),       
+         //  Begin grammar
+         (
+          qi::ulong_[phoenix::ref(source) = qi::_1] >> -qi::char_(",") >>
+          qi::ulong_[phoenix::ref(ntargets) = qi::_1] >> -qi::char_(",") >>
+          *(qi::ulong_[phoenix::push_back(phoenix::ref(targets), qi::_1)] % -qi::char_(","))
+          )
+         ,
+         //  End grammar
+         ascii::space); 
+      // Test to see if the boost parser was able to parse the line
+      if(!success || ntargets != targets.size()) {
+        logstream(LOG_ERROR) << "Parse error in vertex prior parser." << std::endl;
+        return false;
+      }
+      graph.add_vertex(source, targets);
+      return true;
+    } // end of adj parser
+    
     template <typename Graph>
     struct tsv_writer{
       typedef typename Graph::vertex_type vertex_type;

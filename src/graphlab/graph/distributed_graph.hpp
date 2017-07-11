@@ -103,6 +103,7 @@
 #include <graphlab/graph/ingress/distributed_ingress_base.hpp>
 #include <graphlab/graph/ingress/distributed_oblivious_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_random_ingress.hpp>
+#include <graphlab/graph/ingress/distributed_random_ec_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_identity_ingress.hpp>
 
 #include <graphlab/graph/ingress/sharding_constraint.hpp>
@@ -919,6 +920,49 @@ namespace graphlab {
       }
       ASSERT_NE(ingress_ptr, NULL);
       ingress_ptr->add_vertex(vid, vdata);
+      return true;
+    }
+    
+    /**
+     * \brief Creates a vertex containing the vertex data.
+     *
+     * Creates a vertex with a particular vertex ID and containing a
+     * particular vertex data. Vertex IDs need not be sequential, and
+     * may arbitrarily span the unsigned integer range of vertex_id_type
+     * with the exception of (vertex_id_type)(-1), or corresponding to
+     * 0xFFFFFFFF on 32-bit vertex IDs.
+     *
+     * This function is parallel and distributed. i.e. It does not matter which
+     * machine, or which thread on which machines calls add_vertex() for a
+     * particular ID.
+     *
+     * However, each vertex may only be added exactly once.
+     *
+     * Returns true if successful, returns false if a vertex with id (-1) 
+     * was added.
+     */
+    bool add_vertex(const vertex_id_type& vid,
+                    std::vector<vertex_id_type>& adjacency_list,
+                    const VertexData& vdata = VertexData() ) {
+#ifndef USE_DYNAMIC_LOCAL_GRAPH
+      if(finalized) {
+        logstream(LOG_FATAL)
+          << "\n\tAttempting to add a vertex to a finalized graph."
+          << "\n\tVertices cannot be added to a graph after finalization."
+          << std::endl;
+      }
+#else
+      finalized = false;
+#endif
+      if(vid == vertex_id_type(-1)) {
+        logstream(LOG_ERROR)
+          << "\n\tAdding a vertex with id -1 is not allowed."
+          << "\n\tThe -1 vertex id is reserved for internal use."
+          << std::endl;
+        return false;
+      }
+      ASSERT_NE(ingress_ptr, NULL);
+      ingress_ptr->add_vertex(vid, adjacency_list, vdata);
       return true;
     }
 
@@ -2509,6 +2553,9 @@ namespace graphlab {
       } else if (format == "adj") {
         line_parser = builtin_parsers::adj_parser<distributed_graph>;
         load(path, line_parser);
+      }else if (format == "adj_ec") {
+        line_parser = builtin_parsers::adj_ec_parser<distributed_graph>;
+        load(path, line_parser);
       } else if (format == "tsv") {
         line_parser = builtin_parsers::tsv_parser<distributed_graph>;
         load(path, line_parser);
@@ -3296,6 +3343,9 @@ namespace graphlab {
       } else if  (method == "random") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random ingress" << std::endl;
         ingress_ptr = new distributed_random_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
+      } else if  (method == "random_ec") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
+        ingress_ptr = new distributed_random_ec_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
       } else if (method == "grid") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use grid ingress" << std::endl;
         ingress_ptr = new distributed_constrained_random_ingress<VertexData, EdgeData>(rpc.dc(), *this, "grid");

@@ -150,6 +150,17 @@ namespace graphlab {
       vertex_exchange.send(owning_proc, record);
 #endif
     } // end of add vertex
+    
+    /** \brief Add an vertex to the ingress object. */
+    virtual void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list, const VertexData& vdata)  { 
+      const procid_t owning_proc = graph_hash::hash_vertex(vid) % rpc.numprocs();
+      const vertex_buffer_record record(vid, vdata);
+#ifdef _OPENMP
+      vertex_exchange.send(owning_proc, record, omp_get_thread_num());
+#else
+      vertex_exchange.send(owning_proc, record);
+#endif
+    } // end of add vertex
 
 
     void set_duplicate_vertex_strategy(
