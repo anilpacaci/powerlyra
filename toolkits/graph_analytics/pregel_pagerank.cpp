@@ -41,6 +41,15 @@ typedef float edge_data_type;
 // The graph type is determined by the vertex and edge data types
 typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
+typedef struct pagerank_message : public graphlab::IS_POD_TYPE {
+    double value;
+    double priority() const { return std::fabs(value); }
+    pagerank_message& operator+=(const pagerank_message& other) {
+      value += other.value; 
+      return *this;
+    }
+} message_type;
+
 /*
  * A simple function used by graph.transform_vertices(init_vertex);
  * to initialize the vertes data.
@@ -66,24 +75,35 @@ void init_vertex(graph_type::vertex_type& vertex) { vertex.data() = 1; }
  * pagerank also extends graphlab::IS_POD_TYPE (is plain old data type)
  * which tells graphlab that the pagerank program can be serialized
  * (converted to a byte stream) by directly reading its in memory
- * representation.  If a vertex program does not exted
+ * representation.  If a vertex program does not exted      std::cout << "Iteration: " << context.iteration() << std::endl;
+
  * graphlab::IS_POD_TYPE it must implement load and save functions.
  */
 class pagerank :
-  public graphlab::ivertex_program<graph_type, float>,
+public graphlab::ivertex_program<graph_type, graphlab::empty, pagerank_message>,
   public graphlab::IS_POD_TYPE {
   float last_change;
+  double message_value;
 public:
-  /* Gather the weighted rank of the adjacent page   */
-  float gather(icontext_type& context, const vertex_type& vertex,
-               edge_type& edge) const {
-    return edge.data();  
+    
+  void init(icontext_type& context, const vertex_type& vertex, 
+            const message_type& msg) { 
+    message_value = msg.value;
+  } 
+    
+    /**
+   * No gather because of vertex messages during scatter phase.
+   */
+  edge_dir_type gather_edges(icontext_type& context,
+                              const vertex_type& vertex) const {
+    return graphlab::NO_EDGES;
   }
+    
 
   /* Use the total rank of adjacent pages to update this page */
   void apply(icontext_type& context, vertex_type& vertex,
              const gather_type& total) {
-    const double newval = RESET_PROB + (1 - RESET_PROB) * total;
+    const double newval = RESET_PROB + (1 - RESET_PROB) * message_value;
     last_change = std::fabs(newval - vertex.data());
     vertex.data() = newval;
   }
@@ -91,16 +111,18 @@ public:
   /* The scatter edges depend on whether the pagerank has converged */
   edge_dir_type scatter_edges(icontext_type& context,
                               const vertex_type& vertex) const {
-    if (last_change > TOLERANCE) return graphlab::OUT_EDGES;
-    else return graphlab::NO_EDGES;
+    // if (last_change > TOLERANCE || context.iteration() == 0) return graphlab::OUT_EDGES;
+    // else return graphlab::NO_EDGES;
+      return graphlab::OUT_EDGES;
   }
 
   /* The scatter function just signal adjacent pages */
   void scatter(icontext_type& context, const vertex_type& vertex,
                edge_type& edge) const {
+    pagerank_message msg;
     // update edge data with the vertex value then activate the neighbour verte
-    edge.data() = vertex.data() / vertex.num_out_edges();
-    context.signal(edge.target());
+    msg.value = vertex.data() / vertex.num_out_edges();
+    context.signal(edge.target(), msg);
   }
 }; // end of factorized_pagerank update functor
 
@@ -180,7 +202,8 @@ int main(int argc, char** argv) {
     graph.save(saveprefix, pagerank_writer(),
                false,    // do not gzip
                true,     // save vertices
-               false);   // do not save edges
+               false,    // do not save edges
+               1);       // single file per machine
   }
 
   // Tear-down communication layer and quit -----------------------------------

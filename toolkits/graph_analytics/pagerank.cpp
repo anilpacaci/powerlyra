@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
     graph.save(saveprefix, pagerank_writer(),
                false,    // do not gzip
                true,     // save vertices
-               false);   // do not save edges
+               false, 1);   // do not save edges
   }
 
   // Tear-down communication layer and quit -----------------------------------
