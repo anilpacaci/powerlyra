@@ -104,6 +104,7 @@
 #include <graphlab/graph/ingress/distributed_oblivious_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_random_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_random_ec_ingress.hpp>
+#include <graphlab/graph/ingress/distributed_ldg_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_identity_ingress.hpp>
 
 #include <graphlab/graph/ingress/sharding_constraint.hpp>
@@ -3346,7 +3347,10 @@ namespace graphlab {
       } else if  (method == "random_ec") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
         ingress_ptr = new distributed_random_ec_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
-      } else if (method == "grid") {
+      } else if  (method == "ldg") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
+      }else if (method == "grid") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use grid ingress" << std::endl;
         ingress_ptr = new distributed_constrained_random_ingress<VertexData, EdgeData>(rpc.dc(), *this, "grid");
       } else if (method == "pds") {
