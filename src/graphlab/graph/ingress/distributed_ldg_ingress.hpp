@@ -36,7 +36,7 @@ namespace graphlab {
     template<typename VertexData, typename EdgeData>
     class distributed_graph;
 
-    size_t PLACEMENT_BUFFER_THRESHOLD = 5000;
+    size_t PLACEMENT_BUFFER_THRESHOLD = 1;
     
     /**
      * \brief Ingress object assigning vertices using LDG heurisic.
@@ -99,42 +99,47 @@ namespace graphlab {
         /** Add an edge to the ingress object using random assignment. */
         void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
                 const VertexData& vdata) {
-            // initialize all partition scores with 0
-            std::vector<float> partition_scores(nprocs, 0);
+            // initialize all neighbour counts with 0
             std::vector<float> neighbour_count(nprocs, 0);
-
+            std::vector<float> candidate_partitions;
+            
             std::cout << "### Process ID" << self_pid << "    Vertex Id" << vid << std::endl;
             
             // query partition id of each neighbour and count neighbours in each partition
             for (size_t i = 0; i < adjacency_list.size(); i++) {
                 procid_t neighbour_owner = get_vertex_partition(adjacency_list[i]);
                 std::cout << "Neighbourhood : " << adjacency_list[i] << "   partition:" << neighbour_owner << std::endl;
-                if (neighbour_owner !=  ((size_t)-1)) {
+                if (neighbour_owner !=  ((procid_t)-1)) {
                     neighbour_count[neighbour_owner]++;
                 }
             }
 
+            float best_score = 0;
+            
             for (size_t i = 0; i < nprocs; i++) {
                 // get current capacity for partition i
                 size_t current_partition_capacity = partition_vertex_capacity[i];
-
-                // compute partition i score
-                partition_scores[i] = neighbour_count[i] * (1 - (current_partition_capacity / vertex_capacity_constraint));
-                
-                std::cout << "Partition:" << i << "     Score:" << partition_scores[i] << std::endl;
-            }
-
-            float best_score = partition_scores[0];
-            procid_t best_proc = 0;
-            for (size_t i = 1; i < nprocs; ++i) {
-                if (partition_scores[i] > best_score) {
-                    best_score = partition_scores[i];
-                    best_proc = i;
+                if(current_partition_capacity > vertex_capacity_constraint) {
+                    // do not consider this partition
+                    continue;
                 }
+                
+                // compute partition i score
+                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / vertex_capacity_constraint));
+                if(partition_score > best_score) {
+                    candidate_partitions.clear();
+                    best_score = partition_score;
+                    candidate_partitions.push_back(i);                    
+                } else if(partition_score == best_score) {
+                    candidate_partitions.push_back(i);
+                }
+                
+                std::cout << "Partition:" << i << "     Score:" << partition_score << std::endl;
             }
 
-
-            const procid_t owning_proc = best_proc;
+            //choose partition randomly from the candidate partitions
+            // TODO: we select the first one for now
+            const procid_t owning_proc = candidate_partitions[0];
             set_vertex_partition(vid, owning_proc);
 
             const vertex_buffer_record record(vid, vdata);
@@ -205,6 +210,8 @@ namespace graphlab {
                 dht_placement_table[placement.first] = placement.second;
                 // update partition capacity
                 partition_vertex_capacity[placement.second]++;
+                
+                std::cout << "From " << pid << " to " << this->self_pid << " assignment" << placement.first << " : " << placement.second << std::endl;
             }
             
             dht_placement_table_lock.wrunlock();
