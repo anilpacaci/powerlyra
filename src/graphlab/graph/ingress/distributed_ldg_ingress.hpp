@@ -27,6 +27,7 @@
 
 #include <graphlab/rpc/buffered_exchange.hpp>
 #include <graphlab/graph/graph_basic_types.hpp>
+#include <graphlab/graph/graph_hash.hpp>
 #include <graphlab/graph/ingress/distributed_ingress_base.hpp>
 #include <graphlab/graph/distributed_graph.hpp>
 
@@ -116,12 +117,12 @@ namespace graphlab {
             std::vector<float> neighbour_count(nprocs, 0);
             std::vector<float> candidate_partitions;
             
-            std::cout << "### Process ID" << self_pid << "    Vertex Id" << vid << std::endl;
+            // std::cout << "### Process ID" << self_pid << "    Vertex Id" << vid << std::endl;
             
             // query partition id of each neighbour and count neighbours in each partition
             for (size_t i = 0; i < adjacency_list.size(); i++) {
                 procid_t neighbour_owner = get_vertex_partition(adjacency_list[i]);
-                std::cout << "Neighbourhood : " << adjacency_list[i] << "   partition:" << neighbour_owner << std::endl;
+                // std::cout << "Neighbourhood : " << adjacency_list[i] << "   partition:" << neighbour_owner << std::endl;
                 if (neighbour_owner !=  ((procid_t)-1)) {
                     neighbour_count[neighbour_owner]++;
                 }
@@ -138,7 +139,7 @@ namespace graphlab {
                 }
                 
                 // compute partition i score
-                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / vertex_capacity_constraint));
+                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / (double) vertex_capacity_constraint));
                 if(partition_score > best_score) {
                     candidate_partitions.clear();
                     best_score = partition_score;
@@ -147,12 +148,12 @@ namespace graphlab {
                     candidate_partitions.push_back(i);
                 }
                 
-                std::cout << "Partition:" << i << "     Score:" << partition_score << std::endl;
+                // std::cout << "Partition:" << i << "     Score:" << partition_score << std::endl;
             }
 
             //choose partition randomly from the candidate partitions
             // TODO: we select the first one for now
-            const procid_t owning_proc = candidate_partitions[0];
+            const procid_t owning_proc = candidate_partitions[graph_hash::hash_vertex(vid) % candidate_partitions.size()];
             set_vertex_partition(vid, owning_proc);
 
             const vertex_buffer_record record(vid, vdata);
