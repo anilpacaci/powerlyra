@@ -36,7 +36,7 @@ namespace graphlab {
     template<typename VertexData, typename EdgeData>
     class distributed_graph;
 
-    size_t PLACEMENT_BUFFER_THRESHOLD = 1;
+    size_t PLACEMENT_BUFFER_THRESHOLD = 0;
     
     /**
      * \brief Ingress object assigning vertices using LDG heurisic.
@@ -50,16 +50,28 @@ namespace graphlab {
         typedef VertexData vertex_data_type;
         /// The type of the edge data stored in the graph 
         typedef EdgeData edge_data_type;
+        typedef typename graph_type::vertex_record vertex_record;
 
         typedef distributed_ingress_base<VertexData, EdgeData> base_type;
 
         typedef typename base_type::edge_buffer_record edge_buffer_record;
+        typedef typename buffered_exchange<edge_buffer_record>::buffer_type 
+            edge_buffer_type;
         typedef typename base_type::vertex_buffer_record vertex_buffer_record;
+        typedef typename buffered_exchange<vertex_buffer_record>::buffer_type 
+            vertex_buffer_type;
+        
+        typedef typename base_type::vertex_negotiator_record 
+            vertex_negotiator_record;
+        
+        typedef typename base_type::vid2lvid_map_type vid2lvid_map_type;
+        typedef typename base_type::vid2lvid_pair_type vid2lvid_pair_type;
 
+        //LDG specific data structures
         typedef typename boost::unordered_map<vertex_id_type, procid_t>
-        placement_hash_table_type;
+            placement_hash_table_type;
         typedef typename std::pair<vertex_id_type, procid_t>
-        placement_pair_type;
+            placement_pair_type;
 
         placement_hash_table_type dht_placement_table;
         std::vector<placement_pair_type> placement_buffer;
@@ -78,15 +90,16 @@ namespace graphlab {
 
         dc_dist_object<distributed_ldg_ingress> ldg_rpc;
         
-
     public:
 
         distributed_ldg_ingress(distributed_control& dc, graph_type& graph,
                 size_t tot_nedges = 0, size_t tot_nverts = 0) :
-                base_type(dc, graph), ldg_rpc(dc, this), nprocs(base_type::rpc.numprocs()), tot_nedges(tot_nedges), tot_nverts(tot_nverts), partition_edge_capacity(base_type::rpc.numprocs(), 0),
-                partition_vertex_capacity(base_type::rpc.numprocs(), 0) {
+                base_type(dc, graph),  
+                ldg_rpc(dc, this), nprocs(dc.numprocs()), tot_nedges(tot_nedges), tot_nverts(tot_nverts), 
+                partition_edge_capacity(dc.numprocs(), 0),
+                partition_vertex_capacity(dc.numprocs(), 0) {
             
-            self_pid = base_type::rpc.procid();
+            self_pid = ldg_rpc.procid();
 
             double balance_slack = 0.05;
             edge_capacity_constraint = (tot_nedges / nprocs) * (1 + balance_slack);
@@ -157,6 +170,49 @@ namespace graphlab {
 
         } // end of add vertex
         
+        void finalize() {
+            // communicate for the remaining part of placement_buffer
+            // then call finalize from base class
+            if(!placement_buffer.empty()) {
+                for(size_t i = 0 ; i < nprocs ; i++) {
+                    // only populate the the ones that do not belong to this process
+                    if(i != self_pid) {
+                        // need remote call to populate dht
+                        ldg_rpc.remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
+                    } 
+                }
+                placement_buffer.clear();
+            }
+            
+            //call base types finalize method
+            base_type::finalize();
+        }
+        
+    protected:
+        virtual void determine_master(vid2lvid_map_type& vid2lvid_buffer) {
+           
+        /**************************************************************************/
+      /*                                                                        */
+      /*        assign vertex data and allocate vertex (meta)data  space        */
+      /*                                                                        */
+      /**************************************************************************/
+            std::cout << "LDG DETERMINE MASTER" << std::endl;
+       // Determine masters for all negotiated vertices
+        const size_t local_nverts = base_type::graph.vid2lvid.size() + vid2lvid_buffer.size();
+        base_type::graph.lvid2record.reserve(local_nverts);
+        base_type::graph.lvid2record.resize(local_nverts);
+        base_type::graph.local_graph.resize(local_nverts);
+        foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
+            vertex_record& vrec = base_type::graph.lvid2record[pair.second];
+            vrec.gvid = pair.first;
+            vrec.owner = dht_placement_table[pair.first];
+        }
+        ASSERT_EQ(local_nverts, base_type::graph.local_graph.num_vertices());
+        ASSERT_EQ(base_type::graph.lvid2record.size(), base_type::graph.local_graph.num_vertices());
+        if(ldg_rpc.procid() == 0)       
+          memory_info::log_usage("Finihsed allocating lvid2record");
+      }
+        
     private:
             /**
          * Acquires read lock on the distributed table and returns partition procid for given vertex
@@ -196,7 +252,7 @@ namespace graphlab {
                     // only populate the the ones that do not belong to this process
                     if(i != self_pid) {
                         // need remote call to populate dht
-                        ldg_rpc.remote_call(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
+                        ldg_rpc.remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
                     } 
                 }
                 placement_buffer.clear();

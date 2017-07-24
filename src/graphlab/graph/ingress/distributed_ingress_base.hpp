@@ -51,6 +51,13 @@ namespace graphlab {
     typedef typename graph_type::vertex_record vertex_record;
     typedef typename graph_type::mirror_type mirror_type;
 
+    /**
+     * \internal
+     * Buffer storage for new vertices to the local graph.
+     */
+    typedef typename graph_type::hopscotch_map_type vid2lvid_map_type;
+    typedef typename hopscotch_map<vertex_id_type, lvid_type>::value_type
+        vid2lvid_pair_type;
    
     /// The rpc interface for this object
     dc_dist_object<distributed_ingress_base> rpc;
@@ -107,7 +114,7 @@ namespace graphlab {
         return *this;
       }
     };
-
+    
     /// Ingress decision object for computing the edge destination. 
     ingress_edge_decision<VertexData, EdgeData> edge_decision;
 
@@ -210,9 +217,6 @@ namespace graphlab {
         logstream(LOG_EMPH) << "Finalizing Graph..." << std::endl;
       }
 
-      typedef typename hopscotch_map<vertex_id_type, lvid_type>::value_type
-        vid2lvid_pair_type;
-
       typedef typename buffered_exchange<edge_buffer_record>::buffer_type 
         edge_buffer_type;
 
@@ -223,7 +227,6 @@ namespace graphlab {
        * \internal
        * Buffer storage for new vertices to the local graph.
        */
-      typedef typename graph_type::hopscotch_map_type vid2lvid_map_type;
       vid2lvid_map_type vid2lvid_buffer;
 
       /**
@@ -370,19 +373,7 @@ namespace graphlab {
       /*                                                                        */
       /**************************************************************************/
       { // Determine masters for all negotiated vertices
-        const size_t local_nverts = graph.vid2lvid.size() + vid2lvid_buffer.size();
-        graph.lvid2record.reserve(local_nverts);
-        graph.lvid2record.resize(local_nverts);
-        graph.local_graph.resize(local_nverts);
-        foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
-            vertex_record& vrec = graph.lvid2record[pair.second];
-            vrec.gvid = pair.first;
-            vrec.owner = graph_hash::hash_vertex(pair.first) % rpc.numprocs();
-        }
-        ASSERT_EQ(local_nverts, graph.local_graph.num_vertices());
-        ASSERT_EQ(graph.lvid2record.size(), graph.local_graph.num_vertices());
-        if(rpc.procid() == 0)       
-          memory_info::log_usage("Finihsed allocating lvid2record");
+        determine_master(vid2lvid_buffer);
       }
 
       /**************************************************************************/
@@ -589,6 +580,31 @@ namespace graphlab {
     }
 
 
+    protected:
+        virtual void determine_master(vid2lvid_map_type& vid2lvid_buffer) {
+           
+        /**************************************************************************/
+      /*                                                                        */
+      /*        assign vertex data and allocate vertex (meta)data  space        */
+      /*                                                                        */
+      /**************************************************************************/
+            std::cout << "BASE DETERMINE MASTER" << std::endl;
+       // Determine masters for all negotiated vertices
+        const size_t local_nverts = graph.vid2lvid.size() + vid2lvid_buffer.size();
+        graph.lvid2record.reserve(local_nverts);
+        graph.lvid2record.resize(local_nverts);
+        graph.local_graph.resize(local_nverts);
+        foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
+            vertex_record& vrec = graph.lvid2record[pair.second];
+            vrec.gvid = pair.first;
+            vrec.owner = graph_hash::hash_vertex(pair.first) % rpc.numprocs();
+        }
+        ASSERT_EQ(local_nverts, graph.local_graph.num_vertices());
+        ASSERT_EQ(graph.lvid2record.size(), graph.local_graph.num_vertices());
+        if(rpc.procid() == 0)       
+          memory_info::log_usage("Finihsed allocating lvid2record");
+      }
+    
   private:
     boost::function<void(vertex_data_type&, const vertex_data_type&)> vertex_combine_strategy;
 

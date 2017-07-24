@@ -443,6 +443,7 @@ namespace graphlab {
     friend class distributed_bipartite_aweto_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ginger_ingress<VertexData, EdgeData>;
+    friend class distributed_ldg_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
     typedef graphlab::lvid_type lvid_type;
@@ -2324,6 +2325,8 @@ namespace graphlab {
         if ((parallel_ingress && (i % rpc.numprocs() == rpc.procid()))
             || (!parallel_ingress && (rpc.procid() == 0))
             || (data_affinity)) {
+            // sync all graph loaders, added by @anilpacaci
+            rpc.full_barrier();
           logstream(LOG_EMPH) << "Loading graph from file: " << graph_files[i] << std::endl;
           // is it a gzip file ?
           const bool gzip = boost::ends_with(graph_files[i], ".gz");
