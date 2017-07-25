@@ -37,7 +37,7 @@ namespace graphlab {
     template<typename VertexData, typename EdgeData>
     class distributed_graph;
 
-    size_t PLACEMENT_BUFFER_THRESHOLD = 0;
+    size_t PLACEMENT_BUFFER_THRESHOLD = 4096;
     
     /**
      * \brief Ingress object assigning vertices using LDG heurisic.
