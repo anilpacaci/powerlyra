@@ -106,12 +106,11 @@
 #include <graphlab/graph/ingress/distributed_random_ec_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_ldg_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_identity_ingress.hpp>
+#include <graphlab/graph/ingress/distributed_dbh_ingress.hpp>
 
 #include <graphlab/graph/ingress/sharding_constraint.hpp>
 #include <graphlab/graph/ingress/distributed_constrained_random_ingress.hpp>
 
-//vincent's partitions
-#include <graphlab/graph/ingress/distributed_linear_det_greedy_ingress.hpp>
 
 // bipartite
 #include <graphlab/graph/ingress/distributed_bipartite_random_ingress.hpp>
@@ -446,6 +445,7 @@ namespace graphlab {
     friend class distributed_bipartite_aweto_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ginger_ingress<VertexData, EdgeData>;
+    friend class distributed_dbh_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
     typedef graphlab::lvid_type lvid_type;
@@ -3361,6 +3361,9 @@ namespace graphlab {
       } else if  (method == "ldg") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
         ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
+      } else if (method =="dbh") {
+        if(rpc.procid() == ) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
+        ingres_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this, nverts);
       }else if (method == "grid") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use grid ingress" << std::endl;
         ingress_ptr = new distributed_constrained_random_ingress<VertexData, EdgeData>(rpc.dc(), *this, "grid");
