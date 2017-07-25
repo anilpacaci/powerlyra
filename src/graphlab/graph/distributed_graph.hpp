@@ -110,9 +110,6 @@
 #include <graphlab/graph/ingress/sharding_constraint.hpp>
 #include <graphlab/graph/ingress/distributed_constrained_random_ingress.hpp>
 
-//vincent's partitions
-#include <graphlab/graph/ingress/distributed_linear_det_greedy_ingress.hpp>
-
 // bipartite
 #include <graphlab/graph/ingress/distributed_bipartite_random_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_bipartite_affinity_ingress.hpp>
@@ -446,6 +443,7 @@ namespace graphlab {
     friend class distributed_bipartite_aweto_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ingress<VertexData, EdgeData>;
     friend class distributed_hybrid_ginger_ingress<VertexData, EdgeData>;
+    friend class distributed_ldg_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
     typedef graphlab::lvid_type lvid_type;
@@ -694,8 +692,7 @@ namespace graphlab {
       size_t nverts = 0;
       // bipartite
       std::string favorite = "source"; /* source or target */
-      //linear det greedy (ldg)
-      size_t capacity = 0;
+
       
       // deprecated
       size_t bufsize = 50000;
@@ -746,12 +743,7 @@ namespace graphlab {
             logstream(LOG_EMPH) << "Graph Option: favorite = "
                                 << favorite << std::endl;
         }
-        else if (opt == "capacity") {
-            opts.get_graph_args().get_option("capacity", capacity);
-            if(rpc.procid() == 0) 
-                logstream(LOG_EMPH) << "Graph Option: Capacity = "
-                                    << capacity << std::endl;            
-        }
+
         
         /**
          * These options below are deprecated.
@@ -776,7 +768,7 @@ namespace graphlab {
         }
       }
       set_ingress_method(ingress_method, bufsize, usehash, userecent, favorite,
-        threshold, nedges, nverts, interval, capacity);
+        threshold, nedges, nverts, interval);
     }
 
   public:
@@ -2333,6 +2325,8 @@ namespace graphlab {
         if ((parallel_ingress && (i % rpc.numprocs() == rpc.procid()))
             || (!parallel_ingress && (rpc.procid() == 0))
             || (data_affinity)) {
+            // sync all graph loaders, added by @anilpacaci
+            rpc.full_barrier();
           logstream(LOG_EMPH) << "Loading graph from file: " << graph_files[i] << std::endl;
           // is it a gzip file ?
           const bool gzip = boost::ends_with(graph_files[i], ".gz");
@@ -3345,8 +3339,7 @@ namespace graphlab {
         size_t bufsize = 50000, bool usehash = false, bool userecent = false, 
         std::string favorite = "source",
         size_t threshold = 100, size_t nedges = 0, size_t nverts = 0,
-        size_t interval = std::numeric_limits<size_t>::max(),
-        size_t capacity = 0) {
+        size_t interval = std::numeric_limits<size_t>::max()) {
       if(ingress_ptr != NULL) { delete ingress_ptr; ingress_ptr = NULL; }
       if (method == "oblivious") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use oblivious ingress, usehash: " << usehash
@@ -3378,9 +3371,6 @@ namespace graphlab {
       } else if (method == "bipartite_aweto") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use bipartite_aweto ingress" << std::endl;
         ingress_ptr = new distributed_bipartite_aweto_ingress<VertexData, EdgeData>(rpc.dc(), *this, favorite);
-      } else if (method == "linear_det_greedy") {
-        if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use linear deterministic greedy ingress" << std::endl;
-        ingress_ptr = new distrubuted_linear_det_greedy_ingress<VertexData, EdgeData>(rpc.dc(), *this, constraint);
       } else if (method == "hybrid") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use hybrid ingress" << std::endl;
         ingress_ptr = new distributed_hybrid_ingress<VertexData, EdgeData>(rpc.dc(), *this, threshold);
