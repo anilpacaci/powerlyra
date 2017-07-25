@@ -51,10 +51,14 @@ namespace graphlab{
     typedef typename buffered_exchange<edge_buffer_record>::buffer_type 
         edge_buffer_type;
         
+    typedef typename base_type::edge_buffer_record edge_buffer_record;
+    
+    typedef typename boost::unordered_map<vertex_id_type, size_t> degree_map_type;
     ///Variables for partition alg
     
     //store the degrees of each vertex        
     std::vector<size_t> degree_vector;
+    degree_map_type degree_map;
     buffered_exchange<vertex_id_type> degree_exchange;
     
     //1 edge exchange for first pass, when reading the edges to examine degree
@@ -64,18 +68,16 @@ namespace graphlab{
     buffered_exchange<edge_buffer_record> edge_exchange;
     buffered_exchange<edge_buffer_record> dbh_edge_exchange;
     
-    size_t nverts;   
     
     //rpc for this class, allows communication between objects through various machines
     dc_dist_object<distributed_dbh_ingress> dbh_rpc;
     
    
   public:
-    distributed_dbh_ingress(distributed_control& dc, graph_type& graph, size_t nverts = 0) :
+    distributed_dbh_ingress(distributed_control& dc, graph_type& graph) :
          base_type(dc, graph), 
          degree_exchange(dc), edge_exchange(dc),
-         dbh_edge_exchange(dc), dbh_rpc(dc, this), nverts(nverts) {
-             degree_vector.resize(nverts);
+         dbh_edge_exchange(dc), dbh_rpc(dc, this) {
              
              dbh_rpc.barrier();             
     } // end of constructor
@@ -87,24 +89,20 @@ namespace graphlab{
      * The procid for the edge is arbitrary in this function, so hashing the source will be used.
      *  */
     void add_edge(vertex_id_type source, vertex_id_type target,
-                  const EdgeData& edata) {
-      typedef typename base_type::edge_buffer_record edge_buffer_record;
-      
+                  const EdgeData& edata) {            
       procid_t procid;
       
       //increase degree of source
       //degrees are stored/accumulated on each machine locally, then sent out in finalize
-      if(nverts != 0) ++degree_vector.at(source);
-      else 
-      {
-          if (source >= degree_vector.size) degree_vector.resize(source+1);
-          ++degree_vector.at(source);
+      if(degree_map.find(source) != degree_map.end()) {
+          ++degree_map.at(source);
       }
+      else degree_map.emplace(source, 1);
       
-      procid = graph_hash::hash_vertex(source) % base_type::dbh_rpc.numprocs();
+      procid = graph_hash::hash_vertex(source) % dbh_rpc.numprocs();
       const procid_t owning_proc = procid;
       const edge_buffer_record record(source, target, edata);
-      base_type::edge_exchange.send(owning_proc, record);
+      dbh_edge_exchange.send(owning_proc, record);
     } // end of add edge
     
     /** Add an edge to the ingress object by hashing the source or target vid
@@ -117,19 +115,21 @@ namespace graphlab{
         
         edge_buffer_type edge_buffer;
         procid_t proc = -1;
-        while(edge_exchange.recv(proc, edge_buffer)) {
+        while(dbh_edge_exchange.recv(proc, edge_buffer)) {
             for(auto it = edge_buffer.begin(); it != edge_buffer.end(); ++it){
                 procid_t procid;
-                if(degree_vector.at(it->source) > degree_vector.at(it->target))
-                    procid = graph_hash::hash_vertex(it->source) % base_type::degree_rpc.numprocs();
-                else procid = graph_hash::hash_vertex(it->target) % base_type::degree_rpc.numprocs();
+                if(degree_map.at(it->source) > degree_map.at(it->target))
+                    procid = graph_hash::hash_vertex(it->source) % dbh_rpc.numprocs();
+                else procid = graph_hash::hash_vertex(it->target) % dbh_rpc.numprocs();
                 
                 const procid_t owning_proc = procid;
                 const edge_buffer_record record(it->source, it->target, it->edata);
-                base_type::degree_edge_exchange.send(owning_proc, record);
+                base_type::edge_exchange.send(owning_proc, record);
+                
+                std::cout << "Machine " owning_proc << " owns " << it->ssource << " " << it->target <<std::endl;
             }                                       
         }
-        edge_exchange.clear();
+        dbh_edge_exchange.clear();
     } //end of assign_edges
     
     //finalize will need to combine the degree exchanges
@@ -138,7 +138,6 @@ namespace graphlab{
 
       size_t nprocs = dbh_rpc.numprocs();
       procid_t l_procid = dbh_rpc.procid();
-      size_t nedges = 0;
 
       dbh_rpc.full_barrier();
 
@@ -151,21 +150,21 @@ namespace graphlab{
       }
       /**************************************************************************/
       /*                                                                        */
-      /*                       Flush any additional data                        */
+      /*            Flush dbh_edge_exchange, first edge_exchange                */
       /*                                                                        */
       /**************************************************************************/
       
-      edge_exchange.flush();
       dbh_edge_exchange.flush();
+      base_type::edge_exchange.flush();
       
       /**
        * Fast pass for redundant finalization with no graph changes. 
        */
       {
-        size_t changed_size = edge_exchange.size() + dbh_edge_exchange.size();
+        size_t changed_size = base_type::edge_exchange.size() + dbh_edge_exchange.size();
         dbh_rpc.all_reduce(changed_size);
         if (changed_size == 0) {
-          logstream(LOG_INFO) << "Skipping Graph Finalization because no changes happened..." << std::endl;
+          logstream(LOG_INFO) << "Skipping Graph Finalization because no changes happened... (pass 1)" << std::endl;
           return;
         }
       }
@@ -227,7 +226,7 @@ namespace graphlab{
             
       /**************************************************************************/
       /*                                                                        */
-      /*                       Manage all degree values                        */
+      /*                       Assign Edges                                     */
       /*                                                                        */
       /**************************************************************************/
       if(nprocs != 1) {
@@ -241,7 +240,7 @@ namespace graphlab{
       }
             
             
-      
+      base_type::finalize();
 
     }//end of finalize
   }; // end of distributed_dbh_ingress
