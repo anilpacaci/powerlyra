@@ -3362,8 +3362,8 @@ namespace graphlab {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
         ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
       } else if (method =="dbh") {
-        if(rpc.procid() == ) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
-        ingres_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this, nverts);
+        if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
+        ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);
       }else if (method == "grid") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use grid ingress" << std::endl;
         ingress_ptr = new distributed_constrained_random_ingress<VertexData, EdgeData>(rpc.dc(), *this, "grid");
@@ -3381,9 +3381,6 @@ namespace graphlab {
       } else if (method == "bipartite_aweto") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use bipartite_aweto ingress" << std::endl;
         ingress_ptr = new distributed_bipartite_aweto_ingress<VertexData, EdgeData>(rpc.dc(), *this, favorite);
-      } else if (method == "linear_det_greedy") {
-        if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use linear deterministic greedy ingress" << std::endl;
-        ingress_ptr = new distrubuted_linear_det_greedy_ingress<VertexData, EdgeData>(rpc.dc(), *this, constraint);
       } else if (method == "hybrid") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use hybrid ingress" << std::endl;
         ingress_ptr = new distributed_hybrid_ingress<VertexData, EdgeData>(rpc.dc(), *this, threshold);
