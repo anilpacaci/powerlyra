@@ -186,7 +186,7 @@ namespace graphlab{
       /**************************************************************************/
       if(nprocs != 1) { 
             if(l_procid == 0) logstream(LOG_INFO) << "Collecting Degree Counts" <<std::endl;
-          
+            std::cout << "sending degrees to main" << std::endl;
             //send degree_vector values to main machine
             if(l_procid != 0) {
                 //send the degree_vector values into the exchange so main computer can handle
@@ -195,10 +195,12 @@ namespace graphlab{
                 }                      
             }
             dbh_rpc.full_barrier();
-          
+//	    std::cout << "summing degrees on main" << std::endl;          
             //sum degree values from other machines
             if(l_procid == 0) {
+		std::cout << "summing degrees on main" <<std::endl;
                 for(procid_t procid = 1; procid < nprocs; procid++) {
+			std::cout <<"summing form procid: " << procid <<std::endl;
                     //for each procid, get the contents of its degree exchange
                     degree_buffer_type degree_accum;
                     if(degree_exchange.recv(procid, degree_accum)) {
@@ -206,21 +208,23 @@ namespace graphlab{
                             if(degree_map.find(it->first) == degree_map.end()) {
                                 degree_map.emplace(it->first, it->second);
                             }
-                            else degree_map.at(it->first) += degree_map.at(it->second);
+                            else degree_map.at(it->first) = degree_map.at(it->first) +  it->second;
                         }
                     }
                 }
-
+		std::cout << "send degrees from main" <<std::endl;
                 //send the final degree vector to the other machines
-                for(typename degree_map_type::iterator it = degree_map.begin(); it != degree_map.end(); ++it) {
-                    for(procid_t procid = 1; procid < nprocs; procid++) {
-                        degree_exchange.send(procid, *it);
-                    }
-                }
-                degree_exchange.flush();
+		for(procid_t procid = 1; procid < nprocs; ++procid) {
+			std::cout << "sending to procid: " << procid << std::endl;
+			for(typename degree_map_type::iterator it = degree_map.begin(); it != degree_map.end(); ++it) {
+				degree_exchange.send(procid, std::make_pair(it->first, it->second));
+			}
+		}                                            
             }
             dbh_rpc.barrier();
-            
+	    degree_exchange.flush();
+
+            std::cout << "update degrees on sub" <<std::endl;
             //update degree map for sub machines
             if(l_procid != 0) {
                 procid_t rec_proc = 0;
@@ -230,7 +234,7 @@ namespace graphlab{
                     if(degree_map.find(it->first) == degree_map.end()) {
                         degree_map.emplace(it->first, it->second);
                     }
-                    else degree_map.at(it->first) = degree_map.at(it->second);
+                    else degree_map.at(it->first) = it->second;
                 }
                 
                
