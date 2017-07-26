@@ -51,21 +51,23 @@ namespace graphlab{
     typedef typename buffered_exchange<edge_buffer_record>::buffer_type 
         edge_buffer_type;
         
-    typedef typename base_type::edge_buffer_record edge_buffer_record;
+    graph_type& graph;
     
     typedef typename boost::unordered_map<vertex_id_type, size_t> degree_map_type;
     ///Variables for partition alg
     
     //store the degrees of each vertex        
-    std::vector<size_t> degree_vector;
     degree_map_type degree_map;
-    buffered_exchange<vertex_id_type> degree_exchange;
+    
+    typedef typename std::pair<vertex_id_type, size_t> vertex_degree_pair;
+    buffered_exchange<vertex_degree_pair> degree_exchange;
+    typedef typename buffered_exchange<vertex_degree_pair>::buffer_type
+        degree_buffer_type;
     
     //1 edge exchange for first pass, when reading the edges to examine degree
     //the first edge exchange arbitrarily decides proc to send
     //second edge exchange used to add edge to correct proc owner,
     //that is hashing the higher degree vertex between source and target
-    buffered_exchange<edge_buffer_record> edge_exchange;
     buffered_exchange<edge_buffer_record> dbh_edge_exchange;
     
     
@@ -76,8 +78,8 @@ namespace graphlab{
   public:
     distributed_dbh_ingress(distributed_control& dc, graph_type& graph) :
          base_type(dc, graph), 
-         degree_exchange(dc), edge_exchange(dc),
-         dbh_edge_exchange(dc), dbh_rpc(dc, this) {
+         degree_exchange(dc),
+         dbh_edge_exchange(dc), dbh_rpc(dc, this), graph(graph) {
              
              dbh_rpc.barrier();             
     } // end of constructor
@@ -105,7 +107,8 @@ namespace graphlab{
       dbh_edge_exchange.send(owning_proc, record);
     } // end of add edge
     
-    /** Add an edge to the ingress object by hashing the source or target vid
+    /** Assign the edges from the first passthrough of add_edges to its rightful procid
+     * Add an edge to the ingress object by hashing the source or target vid
      * chosen by taking the vertex with higher degree, ties broken by taking source
      *  */
     void assign_edges() {
@@ -116,9 +119,15 @@ namespace graphlab{
         edge_buffer_type edge_buffer;
         procid_t proc = -1;
         while(dbh_edge_exchange.recv(proc, edge_buffer)) {
-            for(auto it = edge_buffer.begin(); it != edge_buffer.end(); ++it){
+            for(typename edge_buffer_type::iterator it = edge_buffer.begin(); it != edge_buffer.end(); ++it){
                 procid_t procid;
-                if(degree_map.at(it->source) > degree_map.at(it->target))
+                size_t source_degree = 0;
+                size_t target_degree = 0;
+                if(degree_map.find(it->source) != degree_map.end())
+                    source_degree = degree_map.at(it->source);
+                if(degree_map.find(it->target) != degree_map.end())
+                    target_degree = degree_map.at(it->target);
+                if(source_degree >= target_degree)
                     procid = graph_hash::hash_vertex(it->source) % dbh_rpc.numprocs();
                 else procid = graph_hash::hash_vertex(it->target) % dbh_rpc.numprocs();
                 
@@ -126,9 +135,10 @@ namespace graphlab{
                 const edge_buffer_record record(it->source, it->target, it->edata);
                 base_type::edge_exchange.send(owning_proc, record);
                 
-                std::cout << "Machine " owning_proc << " owns " << it->ssource << " " << it->target <<std::endl;
+                std::cout << "Machine " << owning_proc << " owns " << it->source << " " << it->target <<std::endl;
             }                                       
         }
+        std::cout << "Finished Assigning Edges" <<std::endl;
         dbh_edge_exchange.clear();
     } //end of assign_edges
     
@@ -150,7 +160,7 @@ namespace graphlab{
       }
       /**************************************************************************/
       /*                                                                        */
-      /*            Flush dbh_edge_exchange, first edge_exchange                */
+      /*                        Flush additional data                           */
       /*                                                                        */
       /**************************************************************************/
       
@@ -180,8 +190,8 @@ namespace graphlab{
             //send degree_vector values to main machine
             if(l_procid != 0) {
                 //send the degree_vector values into the exchange so main computer can handle
-                for(auto it = degree_vector.begin(); it != degree_vector.end(); ++it){
-                    degree_exchange.send(*it, 0);
+                for(typename degree_map_type::iterator it = degree_map.begin(); it != degree_map.end(); ++it){
+                    degree_exchange.send(0, std::make_pair(it->first, it->second));
                 }                      
             }
             dbh_rpc.full_barrier();
@@ -190,36 +200,40 @@ namespace graphlab{
             if(l_procid == 0) {
                 for(procid_t procid = 1; procid < nprocs; procid++) {
                     //for each procid, get the contents of its degree exchange
-                    std::vector<size_t> degree_accum;
+                    degree_buffer_type degree_accum;
                     if(degree_exchange.recv(procid, degree_accum)) {
-                        auto degree_v_it = degree_vector.begin();
-                        auto degree_acc_it = degree_accum.begin();
-                        while(degree_v_it != degree_vector.end() && degree_acc_it != degree_accum.end()) {
-                            *degree_v_it = *degree_v_it + degree_acc_it;
-                            ++degree_v_it;
-                            ++degree_acc_it;
+                        for(typename degree_buffer_type::iterator it = degree_accum.begin(); it != degree_accum.end(); ++it) {
+                            if(degree_map.find(it->first) == degree_map.end()) {
+                                degree_map.emplace(it->first, it->second);
+                            }
+                            else degree_map.at(it->first) += degree_map.at(it->second);
                         }
                     }
                 }
 
                 //send the final degree vector to the other machines
-                for(auto it = degree_vector.begin(); it != degree_vector.end(); ++it) {
+                for(typename degree_map_type::iterator it = degree_map.begin(); it != degree_map.end(); ++it) {
                     for(procid_t procid = 1; procid < nprocs; procid++) {
                         degree_exchange.send(procid, *it);
                     }
                 }
+                degree_exchange.flush();
             }
             dbh_rpc.barrier();
             
-            //update degree vector for sub machines
+            //update degree map for sub machines
             if(l_procid != 0) {
-                std::vector<size_t> rec_degree_vector;
-                degree_exchange.recv(0, rec_degree_vector);
-                auto degree_v_it = degree_vector.begin();
-                auto rec_degree_v_it = rec_degree_vector.begin();
-                while(degree_v_it != degree_vector.end() && rec_degree_v_it != rec_degree_vector.end()) {
-                    *degree_v_it = *rec_degree_v_it;
+                procid_t rec_proc = 0;
+                degree_buffer_type rec_degree_map;
+                degree_exchange.recv(rec_proc, rec_degree_map);
+                for(typename degree_buffer_type::iterator it = rec_degree_map.begin(); it != rec_degree_map.end(); ++it) {
+                    if(degree_map.find(it->first) == degree_map.end()) {
+                        degree_map.emplace(it->first, it->second);
+                    }
+                    else degree_map.at(it->first) = degree_map.at(it->second);
                 }
+                
+               
             }
             dbh_rpc.barrier();  
       }
@@ -229,9 +243,7 @@ namespace graphlab{
       /*                       Assign Edges                                     */
       /*                                                                        */
       /**************************************************************************/
-      if(nprocs != 1) {
-          assign_edges();
-      }
+      assign_edges();
       if(l_procid == 0) {
         logstream(LOG_INFO) << "assign edges: " 
                             << ti.current_time()
