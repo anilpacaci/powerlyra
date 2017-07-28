@@ -111,10 +111,6 @@
 #include <graphlab/graph/ingress/sharding_constraint.hpp>
 #include <graphlab/graph/ingress/distributed_constrained_random_ingress.hpp>
 
-<<<<<<< HEAD
-
-=======
->>>>>>> f5821be7e4c5c0dd1ebe9eb0c38daf63e5c4fb86
 // bipartite
 #include <graphlab/graph/ingress/distributed_bipartite_random_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_bipartite_affinity_ingress.hpp>
