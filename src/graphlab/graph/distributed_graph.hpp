@@ -2328,8 +2328,6 @@ namespace graphlab {
             || (!parallel_ingress && (rpc.procid() == 0))
             || (data_affinity)) {
             // sync all graph loaders, added by @anilpacaci
-            rpc.full_barrier();
-          logstream(LOG_EMPH) << "Loading graph from file: " << graph_files[i] << std::endl;
           // is it a gzip file ?
           const bool gzip = boost::ends_with(graph_files[i], ".gz");
           // open the stream
