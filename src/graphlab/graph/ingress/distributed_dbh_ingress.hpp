@@ -81,7 +81,7 @@ namespace graphlab{
          degree_exchange(dc),
          dbh_edge_exchange(dc), dbh_rpc(dc, this), graph(graph) {
              
-             dbh_rpc.barrier();             
+             dbh_rpc.barrier();	     
     } // end of constructor
 
     ~distributed_dbh_ingress() { }
@@ -93,14 +93,20 @@ namespace graphlab{
     void add_edge(vertex_id_type source, vertex_id_type target,
                   const EdgeData& edata) {            
       procid_t procid;
-      
+//    procid_t l_procid = dbh_rpc.procid();
+//    std::cout << "Reading " << source << " to " << target << " on machine " << l_procid << std::endl;
+
       //increase degree of source
       //degrees are stored/accumulated on each machine locally, then sent out in finalize
       if(degree_map.find(source) != degree_map.end()) {
-          ++degree_map.at(source);
+          ++degree_map[source];
       }
       else degree_map.emplace(source, 1);
-      
+
+/*
+      typename degree_map_type::iterator degree_it = degree_map.insert(std::make_pair(source, 0)).first;
+      degree_it->second = degree_it->second + 1;
+  */    
       procid = graph_hash::hash_vertex(source) % dbh_rpc.numprocs();
       const procid_t owning_proc = procid;
       const edge_buffer_record record(source, target, edata);
@@ -127,7 +133,7 @@ namespace graphlab{
                     source_degree = degree_map.at(it->source);
                 if(degree_map.find(it->target) != degree_map.end())
                     target_degree = degree_map.at(it->target);
-                if(source_degree >= target_degree)
+                if(source_degree < target_degree)
                     procid = graph_hash::hash_vertex(it->source) % dbh_rpc.numprocs();
                 else procid = graph_hash::hash_vertex(it->target) % dbh_rpc.numprocs();
                 
@@ -135,7 +141,6 @@ namespace graphlab{
                 const edge_buffer_record record(it->source, it->target, it->edata);
                 base_type::edge_exchange.send(owning_proc, record);
                 
-                std::cout << "Machine " << owning_proc << " owns " << it->source << " " << it->target <<std::endl;
             }                                       
         }
         std::cout << "Finished Assigning Edges" <<std::endl;
@@ -195,6 +200,7 @@ namespace graphlab{
                 }                      
             }
             dbh_rpc.full_barrier();
+	    degree_exchange.flush();
 //	    std::cout << "summing degrees on main" << std::endl;          
             //sum degree values from other machines
             if(l_procid == 0) {
@@ -212,6 +218,7 @@ namespace graphlab{
                         }
                     }
                 }
+		degree_exchange.clear();
 		std::cout << "send degrees from main" <<std::endl;
                 //send the final degree vector to the other machines
 		for(procid_t procid = 1; procid < nprocs; ++procid) {
@@ -223,10 +230,10 @@ namespace graphlab{
             }
             dbh_rpc.barrier();
 	    degree_exchange.flush();
-
-            std::cout << "update degrees on sub" <<std::endl;
+     
             //update degree map for sub machines
             if(l_procid != 0) {
+		std::cout << "Updating degree on machine " << l_procid << std::endl;
                 procid_t rec_proc = 0;
                 degree_buffer_type rec_degree_map;
                 degree_exchange.recv(rec_proc, rec_degree_map);
