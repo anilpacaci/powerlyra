@@ -302,6 +302,11 @@ int main(int argc, char** argv) {
   dc.cout() << "#vertices: " << graph.num_vertices()
             << " #edges:" << graph.num_edges() << std::endl;
 
+  dc.cout() << "Sources : ";
+  for(std::vector<unsigned int>::iterator it = sources.begin(); it != sources.end(); ++it) {
+	dc.cout() << *it << " ";
+  }
+  dc.cout() << std::endl;
   if(sources.empty()) {
     if (max_degree_source == false) {
       dc.cout()
@@ -325,6 +330,7 @@ int main(int argc, char** argv) {
 
   // Signal all the vertices in the source set
   for(size_t i = 0; i < sources.size(); ++i) {
+    dc.cout() << "Using Source " << sources[i] << std::endl;
     engine.signal(sources[i], min_distance_type(0));
   }
 
