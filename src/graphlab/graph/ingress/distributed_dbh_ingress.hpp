@@ -144,7 +144,8 @@ namespace graphlab{
             }                                       
         }
         std::cout << "Finished Assigning Edges" <<std::endl;
-        dbh_edge_exchange.clear();
+        dbh_rpc.barrier();
+	dbh_edge_exchange.clear();
     } //end of assign_edges
     
     //finalize will need to combine the degree exchanges
@@ -247,6 +248,7 @@ namespace graphlab{
                
             }
             dbh_rpc.barrier();  
+	    degree_exchange.clear();
       }
             
       /**************************************************************************/
@@ -262,7 +264,7 @@ namespace graphlab{
                             << std::endl;
       }
             
-            
+      dbh_rpc.barrier();            
       base_type::finalize();
 
     }//end of finalize
