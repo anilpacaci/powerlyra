@@ -105,6 +105,7 @@
 #include <graphlab/graph/ingress/distributed_random_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_random_ec_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_ldg_ingress.hpp>
+#include <graphlab/graph/ingress/distributed_ldg_reverse_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_identity_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_dbh_ingress.hpp>
 
@@ -3354,6 +3355,9 @@ namespace graphlab {
       } else if  (method == "ldg") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
         ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
+      } else if  (method == "ldg_reverse") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
+        ingress_ptr = new distributed_ldg_reverse_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
       } else if (method =="dbh") {
         if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
         ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);
