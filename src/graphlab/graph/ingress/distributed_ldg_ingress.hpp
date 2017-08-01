@@ -36,9 +36,7 @@
 namespace graphlab {
     template<typename VertexData, typename EdgeData>
     class distributed_graph;
-
-    size_t PLACEMENT_BUFFER_THRESHOLD = 4096;
-    
+   
     /**
      * \brief Ingress object assigning vertices using LDG heurisic.
      */
@@ -78,7 +76,8 @@ namespace graphlab {
         std::vector<placement_pair_type> placement_buffer;
         rwlock dht_placement_table_lock;
         
-        
+	size_t PLACEMENT_BUFFER_THRESHOLD = 4096;       
+ 
         std::vector<size_t> partition_edge_capacity;
         std::vector<size_t> partition_vertex_capacity;
 

@@ -449,6 +449,8 @@ namespace graphlab {
     friend class distributed_hybrid_ginger_ingress<VertexData, EdgeData>;
     friend class distributed_dbh_ingress<VertexData, EdgeData>;
     friend class distributed_ldg_ingress<VertexData, EdgeData>;
+    friend class distributed_ldg_reverse_ingress<VertexData, EdgeData>;
+    friend class distributed_random_ec_reverse_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
     typedef graphlab::lvid_type lvid_type;
