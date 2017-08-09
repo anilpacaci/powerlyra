@@ -210,7 +210,7 @@ namespace graphlab{
 			std::cout <<"summing form procid: " << procid <<std::endl;
                     //for each procid, get the contents of its degree exchange
                     degree_buffer_type degree_accum;
-                    if(degree_exchange.recv(procid, degree_accum)) {
+                    while(degree_exchange.recv(procid, degree_accum)) {
                         for(typename degree_buffer_type::iterator it = degree_accum.begin(); it != degree_accum.end(); ++it) {
                             if(degree_map.find(it->first) == degree_map.end()) {
                                 degree_map.emplace(it->first, it->second);
@@ -237,14 +237,14 @@ namespace graphlab{
 		std::cout << "Updating degree on machine " << l_procid << std::endl;
                 procid_t rec_proc = 0;
                 degree_buffer_type rec_degree_map;
-                degree_exchange.recv(rec_proc, rec_degree_map);
-                for(typename degree_buffer_type::iterator it = rec_degree_map.begin(); it != rec_degree_map.end(); ++it) {
-                    if(degree_map.find(it->first) == degree_map.end()) {
-                        degree_map.emplace(it->first, it->second);
+                while(degree_exchange.recv(rec_proc, rec_degree_map)) {
+                    for(typename degree_buffer_type::iterator it = rec_degree_map.begin(); it != rec_degree_map.end(); ++it) {
+                    	if(degree_map.find(it->first) == degree_map.end()) {
+			      degree_map.emplace(it->first, it->second);
+                   	}
+                   	else degree_map.at(it->first) = it->second;
                     }
-                    else degree_map.at(it->first) = it->second;
                 }
-                
                
             }
             dbh_rpc.barrier();  
