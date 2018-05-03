@@ -244,7 +244,7 @@ namespace graphlab {
             partition_vertex_capacity[procid]++;
             dht_placement_table_lock.wrunlock();
             
-            std::cout << "Vertex:" << vid << "  Partition:" << procid << std::endl;
+            // std::cout << "Vertex:" << vid << "  Partition:" << procid << std::endl;
             
             // check whether we need to sync blocks
             if(placement_buffer.size() > PLACEMENT_BUFFER_THRESHOLD) {
@@ -267,7 +267,7 @@ namespace graphlab {
                 // update partition capacity
                 partition_vertex_capacity[placement.second]++;
                 
-                std::cout << "From " << pid << " to " << this->self_pid << " assignment" << placement.first << " : " << placement.second << std::endl;
+                // std::cout << "From " << pid << " to " << this->self_pid << " assignment" << placement.first << " : " << placement.second << std::endl;
             }
             
             dht_placement_table_lock.wrunlock();
