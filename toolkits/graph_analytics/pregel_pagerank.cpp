@@ -154,14 +154,26 @@ int main(int argc, char** argv) {
   std::string format = "adj";
   std::string exec_type = "synchronous";
   clopts.attach_option("graph", graph_dir,
-                       "The graph file. Required ");
+                       "The graph file.  If none is provided "
+                       "then a toy graph will be created");
   clopts.add_positional("graph");
-  clopts.attach_option("format", format,
-                       "The graph file format");
-  clopts.attach_option("engine", exec_type, 
+  clopts.attach_option("engine", exec_type,
                        "The engine type synchronous or asynchronous");
   clopts.attach_option("tol", TOLERANCE,
                        "The permissible change at convergence.");
+  clopts.attach_option("format", format,
+                       "The graph file format");
+  size_t powerlaw = 0;
+  clopts.attach_option("powerlaw", powerlaw,
+                       "Generate a synthetic powerlaw out-degree graph. ");
+  clopts.attach_option("iterations", ITERATIONS,
+                       "If set, will force the use of the synchronous engine"
+                       "overriding any engine option set by the --engine parameter. "
+                       "Runs complete (non-dynamic) PageRank for a fixed "
+                       "number of iterations. Also overrides the iterations "
+                       "option in the engine");
+  clopts.attach_option("use_delta", USE_DELTA_CACHE,
+                       "Use the delta cache to reduce time in gather.");
   std::string saveprefix;
   clopts.attach_option("saveprefix", saveprefix,
                        "If set, will save the resultant pagerank to a "
@@ -172,17 +184,53 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  if (graph_dir == "") {
-    dc.cout() << "Graph not specified. Cannot continue";
-    return EXIT_FAILURE;
+
+  // Enable gather caching in the engine
+  clopts.get_engine_args().set_option("use_cache", USE_DELTA_CACHE);
+
+  if (ITERATIONS) {
+    // make sure this is the synchronous engine
+    dc.cout() << "--iterations set. Forcing Synchronous engine, and running "
+              << "for " << ITERATIONS << " iterations." << std::endl;
+    //clopts.get_engine_args().set_option("type", "synchronous");
+    clopts.get_engine_args().set_option("max_iterations", ITERATIONS);
+    clopts.get_engine_args().set_option("sched_allv", true);
   }
 
   // Build the graph ----------------------------------------------------------
+  dc.cout() << "Loading graph." << std::endl;
+  graphlab::timer timer; 
   graph_type graph(dc, clopts);
-  dc.cout() << "Loading graph in format: "<< format << std::endl;
-  graph.load_format(graph_dir, format);
+  if(powerlaw > 0) { // make a synthetic graph
+    dc.cout() << "Loading synthetic Powerlaw graph." << std::endl;
+    graph.load_synthetic_powerlaw(powerlaw, false, 2.1, 100000000);
+  }
+  else if (graph_dir.length() > 0) { // Load the graph from a file
+    dc.cout() << "Loading graph in format: "<< format << std::endl;
+    graph.load_format(graph_dir, format);
+  }
+  else {
+    dc.cout() << "graph or powerlaw option must be specified" << std::endl;
+    clopts.print_description();
+    return 0;
+  }
+  const double loading = timer.current_time();
+  dc.cout() << "Loading graph. Finished in " 
+            << loading << std::endl;
+
+
   // must call finalize before querying the graph
+  dc.cout() << "Finalizing graph." << std::endl;
+  timer.start();
   graph.finalize();
+  const double finalizing = timer.current_time();
+  dc.cout() << "Finalizing graph. Finished in " 
+            << finalizing << std::endl;
+
+  // NOTE: ingress time = loading time + finalizing time
+  const double ingress = loading + finalizing;
+  dc.cout() << "Final Ingress (second): " << ingress << std::endl;
+
   dc.cout() << "#vertices: " << graph.num_vertices()
             << " #edges:" << graph.num_edges() << std::endl;
 
@@ -192,18 +240,26 @@ int main(int argc, char** argv) {
   // Running The Engine -------------------------------------------------------
   graphlab::omni_engine<pagerank> engine(dc, graph, exec_type, clopts);
   engine.signal_all();
+  timer.start();
   engine.start();
-  const float runtime = engine.elapsed_seconds();
-  dc.cout() << "Finished Running engine in " << runtime
-            << " seconds." << std::endl;
+  const double runtime = timer.current_time();
+  dc.cout() << "----------------------------------------------------------"
+            << std::endl
+            << "Final Runtime (seconds):   " << runtime 
+            << std::endl
+            << "Updates executed: " << engine.num_updates() << std::endl
+            << "Update Rate (updates/second): " 
+            << engine.num_updates() / runtime << std::endl;
+
+  const double total_rank = graph.map_reduce_vertices<double>(map_rank);
+  std::cout << "Total rank: " << total_rank << std::endl;
 
   // Save the final graph -----------------------------------------------------
   if (saveprefix != "") {
     graph.save(saveprefix, pagerank_writer(),
                false,    // do not gzip
                true,     // save vertices
-               false,    // do not save edges
-               1);       // single file per machine
+               false, 1);   // do not save edges
   }
 
   // Tear-down communication layer and quit -----------------------------------
