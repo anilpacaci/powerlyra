@@ -32,6 +32,10 @@ float RESET_PROB = 0.15;
 
 float TOLERANCE = 1.0E-2;
 
+size_t ITERATIONS = 0;
+
+bool USE_DELTA_CACHE = false;
+
 // The vertex data is just the pagerank value (a float)
 typedef float vertex_data_type;
 
