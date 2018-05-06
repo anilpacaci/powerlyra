@@ -58,6 +58,7 @@
 #include <graphlab/engine/synchronous_engine.hpp>
 #include <graphlab/engine/async_consistent_engine.hpp>
 #include <graphlab/engine/powerlyra_sync_engine.hpp>
+#include <graphlab/engine/powerlyra_sync_ec_engine.hpp>
 #include <graphlab/engine/powerlyra_async_engine.hpp>
 
 namespace graphlab {
@@ -170,6 +171,11 @@ namespace graphlab {
     typedef powerlyra_sync_engine<VertexProgram> powerlyra_sync_engine_type;
 
     /**
+     * \brief the type of powerlyra synchronous engine for edge-cut partitioning
+     */
+    typedef powerlyra_sync_ec_engine<VertexProgram> powerlyra_sync_ec_engine_type;
+    
+    /**
      * \brief the type of asynchronous engine
      */
     typedef powerlyra_async_engine<VertexProgram> powerlyra_async_engine_type;
@@ -234,6 +240,9 @@ namespace graphlab {
       } else if(engine_type == "plsync" || engine_type == "powerlyra_synchronous") {
         logstream(LOG_INFO) << "Using the PowerLyra Synchronous engine." << std::endl;
         engine_ptr = new powerlyra_sync_engine_type(dc, graph, new_options);
+      } else if(engine_type == "plsyncec" || engine_type == "powerlyra_synchronous_ec") {
+        logstream(LOG_INFO) << "Using the PowerLyra Synchronous Edge-cut engine" << std::endl;
+        engine_ptr = new powerlyra_sync_ec_engine_type(dc, graph, new_options);
       } else if(engine_type == "plasync" || engine_type == "powerlyra_asynchronous") {
         logstream(LOG_INFO) << "Using the PowerLyra Asynchronous engine." << std::endl;
         engine_ptr = new powerlyra_async_engine_type(dc, graph, new_options);
