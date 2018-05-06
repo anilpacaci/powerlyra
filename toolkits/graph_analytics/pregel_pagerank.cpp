@@ -144,7 +144,12 @@ struct pagerank_writer {
   std::string save_edge(graph_type::edge_type e) { return ""; }
 }; // end of pagerank writer
 
+double map_rank(const graph_type::vertex_type& v) { return v.data(); }
 
+
+double pagerank_sum(graph_type::vertex_type v) {
+  return v.data();
+}
 
 int main(int argc, char** argv) {
   // Initialize control plain using mpi
