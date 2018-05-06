@@ -347,7 +347,7 @@ namespace graphlab {
      * \brief The object used to communicate with remote copies of the
      * synchronous engine.
      */
-    dc_dist_object< powerlyra_sync_ec_ßengine<VertexProgram> > rmi;
+    dc_dist_object< powerlyra_sync_ec_engine<VertexProgram> > rmi;
 
     /**
      * \brief A reference to the distributed graph on which this
@@ -575,7 +575,7 @@ namespace graphlab {
     /**
      * \brief The engine type used to create express.
      */
-    typedef powerlyra_sync_ec_ßengine<VertexProgram> engine_type;
+    typedef powerlyra_sync_ec_engine<VertexProgram> engine_type;
 
     /**
      * \brief The pair type used to synchronize vertex programs across machines.
