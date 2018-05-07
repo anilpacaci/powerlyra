@@ -2,6 +2,7 @@
 
 import csv
 import os
+import shlex
 
 snap_dataset	= "/home/apacaci/datasets/USA-road/part-00000"
 adj_dataset		= "/home/apacaci/datasets/USA-road-adjacency/part-00000"
@@ -20,7 +21,7 @@ log_folder		= "/home/apacaci/experiments/powerlyra/logs/usa-road"
 # ingress 		: partitioning strategy
 # engine 		: plsync for vertex cut and plsyncec for edgecut
 # iterations 	: number of supersteps, set to 0 to wait for convergence
-parameters 		= "parameters2.csv"
+parameters 		= "parameters.csv"
 
 # an object holding parameters for experiment and return the command line string to be executed
 class PowerLyraRun:
@@ -53,12 +54,12 @@ class PowerLyraRun:
 		self.log_file = os.path.join(log_folder, self.name)
 
 	def produceCommandString(self):
-		command = "mpiexec "
+		command = " mpiexec  "
 		command += "-n {} -npernode {} ".format(str(self.machines), str(self.cpu_per_node))
 		command += "-hostfile ~/machines "
 		command += "/hdd1/gp/tools/powerlyra/release/toolkits/graph_analytics/{} ".format(self.algorithm)
 		command += "--ncpus {} ".format(str(self.cpu_per_node))
-		command += "--graph_opts ingress={},nedges={},nvertes={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
+		command += "--graph_opts ingress={},nedges={},nverts={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
 		command += "--format {} ".format(self.graph_format)
 		# provide proper graph based on the format
 		if self.graph_format == "snap":
@@ -73,7 +74,7 @@ class PowerLyraRun:
 		command += "--engine {} ".format(self.engine)
 		# finally record the output
 		command += "--saveprefix {} ".format(self.result_file)
-		command += "|& tee {} ".format(self.log_file)
+		command += "2>&1 | tee {} ".format(self.log_file)
 		return command
 		
 # list to hold all the objects for this set of experiments
