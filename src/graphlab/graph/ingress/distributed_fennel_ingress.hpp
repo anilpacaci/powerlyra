@@ -95,7 +95,8 @@ namespace graphlab {
         // parameters for Fennel algorithm
         double alpha;
         double gamma;
-        
+	double balance_slack = 0.05;        
+
     public:
 
         distributed_fennel_ingress(distributed_control& dc, graph_type& graph,
@@ -106,8 +107,6 @@ namespace graphlab {
                 partition_vertex_capacity(dc.numprocs(), 0) {
             
             self_pid = fennel_rpc.procid();
-
-            double balance_slack = 0.05;
 
             // fennel specific parameters
             gamma = 1.5;

@@ -91,7 +91,9 @@ namespace graphlab {
         size_t vertex_capacity_constraint;
 
         dc_dist_object<distributed_ldg_ingress> ldg_rpc;
-        
+	
+	double balance_slack = 0.05;       
+	
     public:
 
         distributed_ldg_ingress(distributed_control& dc, graph_type& graph,
@@ -103,7 +105,6 @@ namespace graphlab {
             
             self_pid = ldg_rpc.procid();
 
-            double balance_slack = 0.05;
             edge_capacity_constraint = (tot_nedges / nprocs) * (1 + balance_slack);
             vertex_capacity_constraint = (tot_nverts / nprocs) * (1 + balance_slack);
         } // end of constructor
