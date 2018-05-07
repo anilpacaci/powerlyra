@@ -33,6 +33,8 @@
 
 #include <graphlab/macros_def.hpp>
 
+#include <limits>
+
 namespace graphlab {
     template<typename VertexData, typename EdgeData>
     class distributed_graph;
@@ -127,7 +129,7 @@ namespace graphlab {
                 }
             }
 
-            float best_score = 0;
+            float best_score = std::numeric_limits<float>::min();
             
             for (size_t i = 0; i < nprocs; i++) {
                 // get current capacity for partition i
