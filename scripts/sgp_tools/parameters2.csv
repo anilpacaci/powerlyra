@@ -1,0 +1,3 @@
+nodes,pernode,nedges,nverts,format,ingress,algorithm,iterations,engine
+16,1,58333344,23947347,snap,random,pagerank,20,plsync
+16,1,58333344,23947347,snap,grid,pagerank,20,plsync
