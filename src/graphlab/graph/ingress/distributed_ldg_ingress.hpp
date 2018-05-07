@@ -130,7 +130,7 @@ namespace graphlab {
                 }
             }
 
-            float best_score = std::numeric_limits<float>::min();
+            float best_score = -std::numeric_limits<float>::max();
             
             for (size_t i = 0; i < nprocs; i++) {
                 // get current capacity for partition i
