@@ -134,14 +134,14 @@ namespace graphlab {
             
             for (size_t i = 0; i < nprocs; i++) {
                 // get current capacity for partition i
-                size_t current_partition_capacity = partition_vertex_capacity[i];
-                if(current_partition_capacity > vertex_capacity_constraint) {
+                size_t current_partition_capacity = partition_edge_capacity[i];
+                if(current_partition_capacity > edge_capacity_constraint) {
                     // do not consider this partition
                     continue;
                 }
                 
                 // compute partition i score
-                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / (double) vertex_capacity_constraint));
+                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / (double) edge_capacity_constraint));
                 if(partition_score > best_score) {
                     candidate_partitions.clear();
                     best_score = partition_score;
@@ -239,12 +239,13 @@ namespace graphlab {
          * @param vid
          * @param procid
          */
-        void set_vertex_partition(vertex_id_type vid, procid_t procid) {
+        void set_vertex_partition(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list, procid_t procid) {
             dht_placement_table_lock.writelock();
             dht_placement_table[vid] = procid;
             placement_buffer.push_back(placement_pair_type(vid, procid));
             // increase local partition capacity
             partition_vertex_capacity[procid]++;
+            partition_edge_capacity[procid] += adjacency_list.size();
             dht_placement_table_lock.wrunlock();
             
             // std::cout << "Vertex:" << vid << "  Partition:" << procid << std::endl;
