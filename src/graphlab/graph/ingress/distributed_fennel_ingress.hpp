@@ -157,7 +157,7 @@ namespace graphlab {
 
             //choose partition randomly from the candidate partitions
             const procid_t owning_proc = candidate_partitions[graph_hash::hash_vertex(vid) % candidate_partitions.size()];
-            set_vertex_partition(vid, owning_proc);
+            set_vertex_partition(vid, adjacency_list, owning_proc);
 
             const vertex_buffer_record record(vid, vdata);
 
