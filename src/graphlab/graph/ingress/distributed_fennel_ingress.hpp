@@ -112,8 +112,13 @@ namespace graphlab {
             gamma = 1.5;
             alpha = sqrt(nprocs) * double(tot_nedges) / pow(tot_nverts, gamma);
             
+            std::cout << "capacity vector size: " << partition_vertex_capacity.size() << std::endl;
+            
             edge_capacity_constraint = (tot_nedges / nprocs) * (1 + balance_slack);
             vertex_capacity_constraint = (tot_nverts / nprocs) * (1 + balance_slack);
+            
+            std::cout << "Capacity constraint: " << vertex_capacity_constraint << std::endl;
+            
         } // end of constructor
 
         ~distributed_fennel_ingress() {
@@ -152,7 +157,8 @@ namespace graphlab {
                 if(partition_score > best_score) {
                     candidate_partitions.clear();
                     best_score = partition_score;
-                    candidate_partitions.push_back(i);                    
+                    candidate_partitions.push_back(i); 
+                    std::cout << "new best score from: " << i << std::endl;
                 } else if(partition_score == best_score) {
                     candidate_partitions.push_back(i);
                 }
@@ -162,6 +168,7 @@ namespace graphlab {
 
             //choose partition randomly from the candidate partitions
             // TODO: we select the first one for now
+            std::cout << "# of Candidates: " << candidate_partitions.size() << std::endl;
             const procid_t owning_proc = candidate_partitions[graph_hash::hash_vertex(vid) % candidate_partitions.size()];
             set_vertex_partition(vid, owning_proc);
 
