@@ -25,12 +25,18 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <graphlab/logger/logger.hpp>
+#include <graphlab/logger/assertions.hpp>
+
 #include <graphlab/rpc/buffered_exchange.hpp>
 #include <graphlab/graph/graph_basic_types.hpp>
 #include <graphlab/graph/ingress/distributed_ingress_base.hpp>
 #include <graphlab/graph/distributed_graph.hpp>
 
 #include <graphlab/macros_def.hpp>
+
+#include <string>
+#include <sstream>
 
 namespace graphlab {
   template<typename VertexData, typename EdgeData>
@@ -73,8 +79,15 @@ namespace graphlab {
             if(line.empty()) continue;
             if(in_file.fail()) break;
             
+            std::stringstream ls(line);
             
+            vertex_id_type vid << line;
+            procid_t owning_proc << line;
+            
+            lookup_table[vid] = owning_proc;
         }
+        
+        logstream(LOG_INFO) << "Lookup table populated using: " << metis_lookup_file << std::endl;
         
     } // end of constructor
 
@@ -83,6 +96,28 @@ namespace graphlab {
     /** Add a vertex to the ingress object using lookup table. */
         void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
                 const VertexData& vdata) {
+            
+            procid_t owning_proc;
+            if (dht_placement_table.find(vid) == dht_placement_table.end()) {
+                owning_proc = 0;
+                logstream(LOG_WARNING) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
+            } else {
+                owning_proc = dht_placement_table[vid];
+            }
+            
+            const vertex_buffer_record record(vid, vdata);
+
+            base_type::vertex_exchange.send(owning_proc, record, omp_get_thread_num());
+
+            for (size_t i = 0; i < adjacency_list.size(); i++) {
+                vertex_id_type target = adjacency_list[i];
+                if (vid == target) {
+                    return;
+                }
+                const edge_buffer_record record(vid, target);
+                base_type::edge_exchange.send(owning_proc, record, omp_get_thread_num());
+            }
+        }
   }; // end of distributed_metis_ingress
 }; // end of namespace graphlab
 #include <graphlab/macros_undef.hpp>
