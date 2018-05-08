@@ -185,7 +185,7 @@ namespace graphlab {
         void finalize() {
             // communicate for the remaining part of placement_buffer
             // then call finalize from base class
-            if(!placement_buffer.empty()) {
+            if(!placement_buffer.empty() && !single_loader) {
                 for(size_t i = 0 ; i < nprocs ; i++) {
                     // only populate the the ones that do not belong to this process
                     if(i != self_pid) {
@@ -281,10 +281,7 @@ namespace graphlab {
             foreach( placement_pair_type& placement, placement_buffer ) {
                 dht_placement_table[placement.first] = placement.second;
                 // update partition capacity
-                if(edge_balanced)
-                    partition_capacity[procid] += adjacency_list.size();
-                else
-                    partition_capacity[procid]++;
+                partition_capacity[pid]++;
                 
                 // std::cout << "From " << pid << " to " << this->self_pid << " assignment" << placement.first << " : " << placement.second << std::endl;
             }

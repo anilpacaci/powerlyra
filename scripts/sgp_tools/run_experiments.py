@@ -24,7 +24,7 @@ log_folder		= "/home/apacaci/experiments/powerlyra/logs/twitter"
 # ingress 		: partitioning strategy
 # engine 		: plsync for vertex cut and plsyncec for edgecut
 # iterations 	: number of supersteps, set to 0 to wait for convergence
-parameters 		= "param-usa.csv"
+parameters 		= "param-twitter.csv"
 
 # an object holding parameters for experiment and return the command line string to be executed
 class PowerLyraRun:
