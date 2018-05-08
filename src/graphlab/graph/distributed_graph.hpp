@@ -3358,18 +3358,24 @@ namespace graphlab {
       } else if  (method == "random_ec") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
         ingress_ptr = new distributed_random_ec_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
-      } else if  (method == "random_ec_reverse") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
-        ingress_ptr = new distributed_random_ec_reverse_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
       } else if  (method == "ldg") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
-        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
-      } else if  (method == "ldg_reverse") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
-        ingress_ptr = new distributed_ldg_reverse_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress, edge balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, false); 
+      } else if  (method == "ldg_single") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress, edge balanced, single loader" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, true); 
+      } else if  (method == "ldg_vertex") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress, vertex balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, false, false); 
       } else if  (method == "fennel") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress" << std::endl;
-        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts);
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress, edge balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, false);
+      } else if  (method == "fennel_single") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress, edge balanced, single loader" << std::endl;
+        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, true);
+      } else if  (method == "fennel_vertex") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress, vertex balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, false, false);
       } else if (method =="dbh") {
         if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
         ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);
