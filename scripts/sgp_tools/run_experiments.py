@@ -4,11 +4,14 @@ import csv
 import os
 import shlex
 
-snap_dataset	= "/home/apacaci/datasets/USA-road/part-00000"
-adj_dataset		= "/home/apacaci/datasets/USA-road-adjacency/part-00000"
+snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv.net"
+adj_dataset		= "/home/apacaci/datasets/twitter_rv_adj_ec_combined.txt"
 
-result_folder	= "/home/apacaci/experiments/powerlyra/results/usa-road"
-log_folder		= "/home/apacaci/experiments/powerlyra/logs/usa-road"
+#snap_dataset	= "/home/apacaci/datasets/USA-road/part-00000"
+#adj_dataset	= "/home/apacaci/datasets/USA-road-adjacency/part-00000"
+
+result_folder	= "/home/apacaci/experiments/powerlyra/results/twitter"
+log_folder		= "/home/apacaci/experiments/powerlyra/logs/twitter"
 
 
 # csv file should have following headers
@@ -21,7 +24,7 @@ log_folder		= "/home/apacaci/experiments/powerlyra/logs/usa-road"
 # ingress 		: partitioning strategy
 # engine 		: plsync for vertex cut and plsyncec for edgecut
 # iterations 	: number of supersteps, set to 0 to wait for convergence
-parameters 		= "parameters.csv"
+parameters 		= "param-usa.csv"
 
 # an object holding parameters for experiment and return the command line string to be executed
 class PowerLyraRun:
@@ -54,7 +57,7 @@ class PowerLyraRun:
 		self.log_file = os.path.join(log_folder, self.name)
 
 	def produceCommandString(self):
-		command = " mpiexec  "
+		command = " mpiexec --mca btl_tcp_if_include enp2s0f0 "
 		command += "-n {} -npernode {} ".format(str(self.machines), str(self.cpu_per_node))
 		command += "-hostfile ~/machines "
 		command += "/hdd1/gp/tools/powerlyra/release/toolkits/graph_analytics/{} ".format(self.algorithm)
