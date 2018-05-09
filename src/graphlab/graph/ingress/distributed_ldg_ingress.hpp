@@ -251,7 +251,9 @@ namespace graphlab {
         void set_vertex_partition(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list, procid_t procid) {
             dht_placement_table_lock.writelock();
             dht_placement_table[vid] = procid;
-            placement_buffer.push_back(placement_pair_type(vid, procid));
+            if(!single_loader)
+                placement_buffer.push_back(placement_pair_type(vid, procid));
+            
             // increase local partition capacity
             if(edge_balanced)
                 partition_capacity[procid] += adjacency_list.size();
