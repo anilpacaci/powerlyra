@@ -274,11 +274,7 @@ namespace graphlab {
                     if(i != self_pid) {
                         // need remote call to populate dht
                         // use unblocking calls for single loader case, so that loader process can continue
-                        if(single_loader) {
-                            fennel_rpc.future_remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                        } else {
-                            fennel_rpc.remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                        } 
+                        fennel_rpc.remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
                     }
                 }
                 placement_buffer.clear();

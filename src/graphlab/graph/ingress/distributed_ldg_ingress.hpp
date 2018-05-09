@@ -270,11 +270,7 @@ namespace graphlab {
                     if(i != self_pid) {
                         // need remote call to populate dht
                         // use unblocking calls for single loader case, so that loader process can continue
-                        if(single_loader) {
-                            ldg_rpc.future_remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                        } else {
-                            ldg_rpc.remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                        } 
+                        ldg_rpc.remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
                     }
                 }
                 placement_buffer.clear();
