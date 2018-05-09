@@ -81,7 +81,7 @@ namespace graphlab {
         std::vector<placement_pair_type> placement_buffer;
         rwlock dht_placement_table_lock;
         
-	size_t PLACEMENT_BUFFER_THRESHOLD = 4096;       
+	size_t PLACEMENT_BUFFER_THRESHOLD = 65536;       
  
         std::vector<size_t> partition_capacity;
 
@@ -189,7 +189,7 @@ namespace graphlab {
         void finalize() {
             // communicate for the remaining part of placement_buffer
             // then call finalize from base class
-            if(!placement_buffer.empty() && !single_loader ) {
+            if(!placement_buffer.empty()) {
                 for(size_t i = 0 ; i < nprocs ; i++) {
                     // only populate the the ones that do not belong to this process
                     if(i != self_pid) {
@@ -237,13 +237,12 @@ namespace graphlab {
          */
         procid_t get_vertex_partition(vertex_id_type vid) {
             procid_t partition;
-            dht_placement_table_lock.readlock();
+            // TODO: removed the read_lock as knowing exact partition does not have significant impact in performance    
             if (dht_placement_table.find(vid) == dht_placement_table.end()) {
                 partition = -1;
             } else {
                 partition = dht_placement_table[vid];
             }
-            dht_placement_table_lock.rdunlock();
             return partition;
         }
 
@@ -269,13 +268,18 @@ namespace graphlab {
             // std::cout << "Vertex:" << vid << "  Partition:" << procid << std::endl;
             
             // check whether we need to sync blocks
-            if(placement_buffer.size() > PLACEMENT_BUFFER_THRESHOLD && !single_loader) {
+            if(placement_buffer.size() > PLACEMENT_BUFFER_THRESHOLD) {
                 for(size_t i = 0 ; i < nprocs ; i++) {
                     // only populate the the ones that do not belong to this process
                     if(i != self_pid) {
                         // need remote call to populate dht
-                        fennel_rpc.remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                    } 
+                        // use unblocking calls for single loader case, so that loader process can continue
+                        if(single_loader) {
+                            fennel_rpc.future_remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
+                        } else {
+                            fennel_rpc.remote_request(i, &distributed_fennel_ingress::block_add_placement_pair, self_pid, placement_buffer);
+                        } 
+                    }
                 }
                 placement_buffer.clear();
             }

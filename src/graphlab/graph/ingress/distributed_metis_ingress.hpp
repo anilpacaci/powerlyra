@@ -60,6 +60,9 @@ namespace graphlab {
    
     typedef typename boost::unordered_map<vertex_id_type, procid_t> lookup_table_type;
     
+    dc_dist_object<distributed_fennel_ingress> metis_rpc;
+
+    
     const size_t tot_nedges;
     const size_t tot_nverts;
     // full path to lookup file
@@ -69,7 +72,7 @@ namespace graphlab {
     
   public:
     distributed_metis_ingress(distributed_control& dc, graph_type& graph, std::string metis_lookup_file) :
-    base_type(dc, graph), tot_nedges(tot_nedges), tot_nverts(tot_nverts),metis_lookup_file(metis_lookup_file) {
+    base_type(dc, graph), metis_rpc(dc, this) tot_nedges(tot_nedges), tot_nverts(tot_nverts),metis_lookup_file(metis_lookup_file) {
         // populate the map from lookup table. 
         // each loader process has a full copy of the lookup table
         std::ifstream in_file(metis_lookup_file.c_str(), std::ios_base::in);
@@ -94,30 +97,55 @@ namespace graphlab {
     ~distributed_metis_ingress() { }
 
     /** Add a vertex to the ingress object using lookup table. */
-        void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
-                const VertexData& vdata) {
-            
-            procid_t owning_proc;
-            if (dht_placement_table.find(vid) == dht_placement_table.end()) {
-                owning_proc = 0;
-                logstream(LOG_WARNING) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
-            } else {
-                owning_proc = dht_placement_table[vid];
-            }
-            
-            const vertex_buffer_record record(vid, vdata);
+    void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
+            const VertexData& vdata) {
 
-            base_type::vertex_exchange.send(owning_proc, record, omp_get_thread_num());
-
-            for (size_t i = 0; i < adjacency_list.size(); i++) {
-                vertex_id_type target = adjacency_list[i];
-                if (vid == target) {
-                    return;
-                }
-                const edge_buffer_record record(vid, target);
-                base_type::edge_exchange.send(owning_proc, record, omp_get_thread_num());
-            }
+        procid_t owning_proc;
+        if (dht_placement_table.find(vid) == dht_placement_table.end()) {
+            owning_proc = 0;
+            logstream(LOG_WARNING) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
+        } else {
+            owning_proc = dht_placement_table[vid];
         }
+
+        const vertex_buffer_record record(vid, vdata);
+
+        base_type::vertex_exchange.send(owning_proc, record, omp_get_thread_num());
+
+        for (size_t i = 0; i < adjacency_list.size(); i++) {
+            vertex_id_type target = adjacency_list[i];
+            if (vid == target) {
+                return;
+            }
+            const edge_buffer_record record(vid, target);
+            base_type::edge_exchange.send(owning_proc, record, omp_get_thread_num());
+        }
+    }
+    
+    protected:
+        virtual void determine_master(vid2lvid_map_type& vid2lvid_buffer) {
+
+        /**************************************************************************/
+      /*                                                                        */
+      /*        assign vertex data and allocate vertex (meta)data  space        */
+      /*                                                                        */
+      /**************************************************************************/
+            std::cout << "METIS DETERMINE MASTER" << std::endl;
+       // Determine masters for all negotiated vertices
+        const size_t local_nverts = base_type::graph.vid2lvid.size() + vid2lvid_buffer.size();
+        base_type::graph.lvid2record.reserve(local_nverts);
+        base_type::graph.lvid2record.resize(local_nverts);
+        base_type::graph.local_graph.resize(local_nverts);
+        foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
+            vertex_record& vrec = base_type::graph.lvid2record[pair.second];
+            vrec.gvid = pair.first;
+            vrec.owner = dht_placement_table[pair.first];
+        }
+        ASSERT_EQ(local_nverts, base_type::graph.local_graph.num_vertices());
+        ASSERT_EQ(base_type::graph.lvid2record.size(), base_type::graph.local_graph.num_vertices());
+        if(metis_rpc.procid() == 0)       
+          memory_info::log_usage("Finihsed allocating lvid2record");
+      }
   }; // end of distributed_metis_ingress
 }; // end of namespace graphlab
 #include <graphlab/macros_undef.hpp>
