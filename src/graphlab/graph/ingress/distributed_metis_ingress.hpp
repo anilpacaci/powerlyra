@@ -63,8 +63,6 @@ namespace graphlab {
     dc_dist_object<distributed_fennel_ingress> metis_rpc;
 
     
-    const size_t tot_nedges;
-    const size_t tot_nverts;
     // full path to lookup file
     std::string metis_lookup_file;
     
@@ -72,7 +70,7 @@ namespace graphlab {
     
   public:
     distributed_metis_ingress(distributed_control& dc, graph_type& graph, std::string metis_lookup_file) :
-    base_type(dc, graph), metis_rpc(dc, this) tot_nedges(tot_nedges), tot_nverts(tot_nverts),metis_lookup_file(metis_lookup_file) {
+    base_type(dc, graph), metis_rpc(dc, this) ,metis_lookup_file(metis_lookup_file) {
         // populate the map from lookup table. 
         // each loader process has a full copy of the lookup table
         std::ifstream in_file(metis_lookup_file.c_str(), std::ios_base::in);

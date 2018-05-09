@@ -36,12 +36,13 @@ class PowerLyraRun:
 	algorithm		= "pagerank"
 	graph_format	= "snap"
 	ingress			= "random"
+	lookup			= ""
 	iterations		= 0
 	engine			= "plsync"
 	result_file		= ""
 	log_file		= ""
 
-	def __init__(self, machines, cpu_per_node, graph_nodes, graph_edges, algorithm, graph_format, ingress, iterations, engine):
+	def __init__(self, machines, cpu_per_node, graph_nodes, graph_edges, algorithm, graph_format, ingress, lookup, iterations, engine):
 		self.machines = machines
 		self.cpu_per_node = cpu_per_node
 		self.graph_nodes = graph_nodes
@@ -49,6 +50,7 @@ class PowerLyraRun:
 		self.algorithm = algorithm
 		self.graph_format = graph_format
 		self.ingress = ingress
+		self.lookup = lookup
 		self.iterations = iterations
 		self.engine = engine
 		# generate name from parameters
@@ -62,7 +64,12 @@ class PowerLyraRun:
 		command += "-hostfile ~/machines "
 		command += "/hdd1/gp/tools/powerlyra/release/toolkits/graph_analytics/{} ".format(self.algorithm)
 		command += "--ncpus {} ".format(str(self.cpu_per_node))
-		command += "--graph_opts ingress={},nedges={},nverts={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
+		# metis needs special parameters to set lookup file
+		if self.ingress == "metis":
+			command += "--graph_opts ingress={},nedges={},nverts={},lookup={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes), self.lookup)
+		else:
+			command += "--graph_opts ingress={},nedges={},nverts={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
+
 		command += "--format {} ".format(self.graph_format)
 		# provide proper graph based on the format
 		if self.graph_format == "snap":
@@ -87,7 +94,7 @@ run_list = []
 with open(parameters, 'rb') as parameters_file:
 	parameters_csv = csv.DictReader(parameters_file)
 	for row in parameters_csv:
-		run_list.append(PowerLyraRun(int(row['nodes']), int(row['pernode']), int(row['nverts']), int(row['nedges']), row['algorithm'], row['format'], row['ingress'], int(row['iterations']), row['engine']))
+		run_list.append(PowerLyraRun(int(row['nodes']), int(row['pernode']), int(row['nverts']), int(row['nedges']), row['algorithm'], row['format'], row['ingress'], row.get('lookup', ""), int(row['iterations']), row['engine']))
 
 	# run each command one by one
 	for run in run_list:
