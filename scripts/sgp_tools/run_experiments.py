@@ -4,14 +4,14 @@ import csv
 import os
 import shlex
 
-snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv.net"
-adj_dataset		= "/home/apacaci/datasets/twitter_rv_adj_ec_combined.txt"
+snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
+adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
 
-#snap_dataset	= "/home/apacaci/datasets/USA-road/part-00000"
-#adj_dataset	= "/home/apacaci/datasets/USA-road-adjacency/part-00000"
+#snap_dataset	= "/home/apacaci/datasets/USA-road/USA-road-snap/part-00000"
+#adj_dataset	= "/home/apacaci/datasets/USA-road/USA-road-adjacency/part-00000"
 
 result_folder	= "/home/apacaci/experiments/powerlyra/results/twitter"
-log_folder		= "/home/apacaci/experiments/powerlyra/logs/twitter"
+log_folder	= "/home/apacaci/experiments/powerlyra/logs/twitter"
 
 
 # csv file should have following headers
