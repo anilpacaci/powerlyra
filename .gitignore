@@ -26,3 +26,9 @@ tags
 \.mchg\.mchg
 .ycm_extra_conf*
 /dist/
+
+# for mac systems
+.DS_Store
+
+# netbeans project files
+nbproject
