@@ -1,0 +1,6 @@
+nodes,pernode,nedges,nverts,format,ingress,algorithm,iterations,engine,lookup
+16,1,58333344,23947347,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/USA-road/USA-road-metis-partition16/part-00000
+32,1,58333344,23947347,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/USA-road/USA-road-metis-partition32/part-00000
+64,2,58333344,23947347,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/USA-road/USA-road-metis-partition64/part-00000
+128,4,58333344,23947347,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/USA-road/USA-road-metis-partition128/part-00000
+

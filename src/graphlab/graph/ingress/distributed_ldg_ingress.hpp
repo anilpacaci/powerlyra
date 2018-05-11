@@ -25,6 +25,9 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <graphlab/logger/logger.hpp>
+#include <graphlab/logger/assertions.hpp>
+
 #include <graphlab/rpc/buffered_exchange.hpp>
 #include <graphlab/graph/graph_basic_types.hpp>
 #include <graphlab/graph/graph_hash.hpp>
@@ -32,6 +35,8 @@
 #include <graphlab/graph/distributed_graph.hpp>
 
 #include <graphlab/macros_def.hpp>
+
+#include <limits>
 
 namespace graphlab {
     template<typename VertexData, typename EdgeData>
@@ -76,34 +81,41 @@ namespace graphlab {
         std::vector<placement_pair_type> placement_buffer;
         rwlock dht_placement_table_lock;
         
-	size_t PLACEMENT_BUFFER_THRESHOLD = 4096;       
+	size_t PLACEMENT_BUFFER_THRESHOLD = 65536;       
  
-        std::vector<size_t> partition_edge_capacity;
-        std::vector<size_t> partition_vertex_capacity;
+        std::vector<size_t> partition_capacity;
 
         const size_t tot_nedges;
         const size_t tot_nverts;
         const size_t nprocs;
         procid_t self_pid;
-        size_t edge_capacity_constraint;
-        size_t vertex_capacity_constraint;
+        size_t capacity_constraint;
 
         dc_dist_object<distributed_ldg_ingress> ldg_rpc;
+	
+	double balance_slack = 0.05;
         
+        // if there is only one loader, communication with other loaders are disabled
+        bool single_loader;
+        // use edge balanced strategy instead of vertex balanced
+        bool edge_balanced;
+	
     public:
 
         distributed_ldg_ingress(distributed_control& dc, graph_type& graph,
-                size_t tot_nedges = 0, size_t tot_nverts = 0) :
+                size_t tot_nedges = 0, size_t tot_nverts = 0, bool edge_balanced = true, bool single_loader = false) :
                 base_type(dc, graph),  
                 ldg_rpc(dc, this), nprocs(dc.numprocs()), tot_nedges(tot_nedges), tot_nverts(tot_nverts), 
-                partition_edge_capacity(dc.numprocs(), 0),
-                partition_vertex_capacity(dc.numprocs(), 0) {
+                partition_capacity(dc.numprocs(), 0), single_loader(single_loader), edge_balanced(edge_balanced) {
             
             self_pid = ldg_rpc.procid();
 
-            double balance_slack = 0.05;
-            edge_capacity_constraint = (tot_nedges / nprocs) * (1 + balance_slack);
-            vertex_capacity_constraint = (tot_nverts / nprocs) * (1 + balance_slack);
+            if(edge_balanced) {
+                capacity_constraint = (tot_nedges / nprocs) * (1 + balance_slack);
+            } else {
+                capacity_constraint = (tot_nverts / nprocs) * (1 + balance_slack);
+            }
+            logstream(LOG_INFO) << "LDG Ingress edge balanced: " << edge_balanced << " single loader (no sync): " << single_loader << std::endl;
         } // end of constructor
 
         ~distributed_ldg_ingress() {
@@ -127,18 +139,18 @@ namespace graphlab {
                 }
             }
 
-            float best_score = 0;
+            float best_score = -std::numeric_limits<float>::max();
             
             for (size_t i = 0; i < nprocs; i++) {
                 // get current capacity for partition i
-                size_t current_partition_capacity = partition_vertex_capacity[i];
-                if(current_partition_capacity > vertex_capacity_constraint) {
+                size_t current_partition_capacity = partition_capacity[i];
+                if(current_partition_capacity > capacity_constraint) {
                     // do not consider this partition
                     continue;
                 }
                 
                 // compute partition i score
-                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / (double) vertex_capacity_constraint));
+                float partition_score = neighbour_count[i] * (1 - (current_partition_capacity / (double) capacity_constraint));
                 if(partition_score > best_score) {
                     candidate_partitions.clear();
                     best_score = partition_score;
@@ -153,7 +165,7 @@ namespace graphlab {
             //choose partition randomly from the candidate partitions
             // TODO: we select the first one for now
             const procid_t owning_proc = candidate_partitions[graph_hash::hash_vertex(vid) % candidate_partitions.size()];
-            set_vertex_partition(vid, owning_proc);
+            set_vertex_partition(vid, adjacency_list, owning_proc);
 
             const vertex_buffer_record record(vid, vdata);
 
@@ -236,12 +248,17 @@ namespace graphlab {
          * @param vid
          * @param procid
          */
-        void set_vertex_partition(vertex_id_type vid, procid_t procid) {
+        void set_vertex_partition(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list, procid_t procid) {
             dht_placement_table_lock.writelock();
             dht_placement_table[vid] = procid;
             placement_buffer.push_back(placement_pair_type(vid, procid));
+            
             // increase local partition capacity
-            partition_vertex_capacity[procid]++;
+            if(edge_balanced)
+                partition_capacity[procid] += adjacency_list.size();
+            else
+                partition_capacity[procid]++;
+
             dht_placement_table_lock.wrunlock();
             
             // std::cout << "Vertex:" << vid << "  Partition:" << procid << std::endl;
@@ -252,8 +269,9 @@ namespace graphlab {
                     // only populate the the ones that do not belong to this process
                     if(i != self_pid) {
                         // need remote call to populate dht
+                        // use unblocking calls for single loader case, so that loader process can continue
                         ldg_rpc.remote_request(i, &distributed_ldg_ingress::block_add_placement_pair, self_pid, placement_buffer);
-                    } 
+                    }
                 }
                 placement_buffer.clear();
             }
@@ -265,7 +283,7 @@ namespace graphlab {
             foreach( placement_pair_type& placement, placement_buffer ) {
                 dht_placement_table[placement.first] = placement.second;
                 // update partition capacity
-                partition_vertex_capacity[placement.second]++;
+                partition_capacity[pid]++;
                 
                 // std::cout << "From " << pid << " to " << this->self_pid << " assignment" << placement.first << " : " << placement.second << std::endl;
             }

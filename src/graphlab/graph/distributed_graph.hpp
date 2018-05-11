@@ -109,6 +109,7 @@
 #include <graphlab/graph/ingress/distributed_ldg_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_ldg_reverse_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_fennel_ingress.hpp>
+#include <graphlab/graph/ingress/distributed_metis_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_identity_ingress.hpp>
 #include <graphlab/graph/ingress/distributed_dbh_ingress.hpp>
 
@@ -452,6 +453,7 @@ namespace graphlab {
     friend class distributed_ldg_ingress<VertexData, EdgeData>;
     friend class distributed_ldg_reverse_ingress<VertexData, EdgeData>;
     friend class distributed_fennel_ingress<VertexData, EdgeData>;
+    friend class distributed_metis_ingress<VertexData, EdgeData>;
     friend class distributed_random_ec_reverse_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
@@ -701,6 +703,8 @@ namespace graphlab {
       size_t nverts = 0;
       // bipartite
       std::string favorite = "source"; /* source or target */
+      
+      std::string metis_lookup_file = "";
 
       
       // deprecated
@@ -751,6 +755,11 @@ namespace graphlab {
           if (rpc.procid() == 0)
             logstream(LOG_EMPH) << "Graph Option: favorite = "
                                 << favorite << std::endl;
+        } else if(opt == "lookup") {
+            opts.get_graph_args().get_option("lookup", metis_lookup_file);
+            if(rpc.procid() == 0)
+                logstream(LOG_EMPH) << "Graph option: lookup = "
+                                    << metis_lookup_file << std::endl;
         }
 
         
@@ -777,7 +786,7 @@ namespace graphlab {
         }
       }
       set_ingress_method(ingress_method, bufsize, usehash, userecent, favorite,
-        threshold, nedges, nverts, interval);
+        threshold, nedges, nverts, interval, metis_lookup_file);
     }
 
   public:
@@ -3346,7 +3355,8 @@ namespace graphlab {
         size_t bufsize = 50000, bool usehash = false, bool userecent = false, 
         std::string favorite = "source",
         size_t threshold = 100, size_t nedges = 0, size_t nverts = 0,
-        size_t interval = std::numeric_limits<size_t>::max()) {
+        size_t interval = std::numeric_limits<size_t>::max(), 
+        std::string metis_lookup_file = "") {
       if(ingress_ptr != NULL) { delete ingress_ptr; ingress_ptr = NULL; }
       if (method == "oblivious") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use oblivious ingress, usehash: " << usehash
@@ -3358,18 +3368,21 @@ namespace graphlab {
       } else if  (method == "random_ec") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
         ingress_ptr = new distributed_random_ec_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
-      } else if  (method == "random_ec_reverse") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use random-edgecut ingress" << std::endl;
-        ingress_ptr = new distributed_random_ec_reverse_ingress<VertexData, EdgeData>(rpc.dc(), *this); 
       } else if  (method == "ldg") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
-        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
-      } else if  (method == "ldg_reverse") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress" << std::endl;
-        ingress_ptr = new distributed_ldg_reverse_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts); 
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress, edge balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, false); 
+      } else if  (method == "ldg_vertex") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use LDG ingress, vertex balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_ldg_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, false, false); 
       } else if  (method == "fennel") {
-        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress" << std::endl;
-        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts);
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress, edge balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, true, false);
+      } else if  (method == "fennel_vertex") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use Fennel ingress, vertex balanced multiple loaders" << std::endl;
+        ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, false, false);
+      } else if  (method == "metis") {
+        if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use METIS ingress with lookup: " << metis_lookup_file << std::endl;
+        ingress_ptr = new distributed_metis_ingress<VertexData, EdgeData>(rpc.dc(), *this, metis_lookup_file);
       } else if (method =="dbh") {
         if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
         ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);
