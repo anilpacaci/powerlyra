@@ -54,13 +54,27 @@ namespace graphlab {
     typedef VertexData vertex_data_type;
     /// The type of the edge data stored in the graph 
     typedef EdgeData   edge_data_type;
-
+    
+    typedef typename graph_type::vertex_record vertex_record;
 
     typedef distributed_ingress_base<VertexData, EdgeData> base_type;
-   
+
+    typedef typename base_type::edge_buffer_record edge_buffer_record;
+    typedef typename buffered_exchange<edge_buffer_record>::buffer_type 
+            edge_buffer_type;
+    typedef typename base_type::vertex_buffer_record vertex_buffer_record;
+    typedef typename buffered_exchange<vertex_buffer_record>::buffer_type 
+            vertex_buffer_type;
+        
+    typedef typename base_type::vertex_negotiator_record 
+            vertex_negotiator_record;
+        
+    typedef typename base_type::vid2lvid_map_type vid2lvid_map_type;
+    typedef typename base_type::vid2lvid_pair_type vid2lvid_pair_type;
+
     typedef typename boost::unordered_map<vertex_id_type, procid_t> lookup_table_type;
     
-    dc_dist_object<distributed_fennel_ingress> metis_rpc;
+    dc_dist_object<distributed_metis_ingress> metis_rpc;
 
     
     // full path to lookup file
@@ -74,6 +88,9 @@ namespace graphlab {
         // populate the map from lookup table. 
         // each loader process has a full copy of the lookup table
         std::ifstream in_file(metis_lookup_file.c_str(), std::ios_base::in);
+	vertex_id_type vid;
+	procid_t owning_proc;
+
         while(in_file.good() && !in_file.eof()) {
             std::string line;
             std::getline(in_file, line);
@@ -82,8 +99,8 @@ namespace graphlab {
             
             std::stringstream ls(line);
             
-            vertex_id_type vid << line;
-            procid_t owning_proc << line;
+	    ls >> vid;
+	    ls >> owning_proc;
             
             lookup_table[vid] = owning_proc;
         }
@@ -99,11 +116,11 @@ namespace graphlab {
             const VertexData& vdata) {
 
         procid_t owning_proc;
-        if (dht_placement_table.find(vid) == dht_placement_table.end()) {
+        if (lookup_table.find(vid) == lookup_table.end()) {
             owning_proc = 0;
             logstream(LOG_WARNING) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
         } else {
-            owning_proc = dht_placement_table[vid];
+            owning_proc = lookup_table[vid];
         }
 
         const vertex_buffer_record record(vid, vdata);
@@ -137,7 +154,7 @@ namespace graphlab {
         foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
             vertex_record& vrec = base_type::graph.lvid2record[pair.second];
             vrec.gvid = pair.first;
-            vrec.owner = dht_placement_table[pair.first];
+            vrec.owner = lookup_table[pair.first];
         }
         ASSERT_EQ(local_nverts, base_type::graph.local_graph.num_vertices());
         ASSERT_EQ(base_type::graph.lvid2record.size(), base_type::graph.local_graph.num_vertices());

@@ -453,6 +453,7 @@ namespace graphlab {
     friend class distributed_ldg_ingress<VertexData, EdgeData>;
     friend class distributed_ldg_reverse_ingress<VertexData, EdgeData>;
     friend class distributed_fennel_ingress<VertexData, EdgeData>;
+    friend class distributed_metis_ingress<VertexData, EdgeData>;
     friend class distributed_random_ec_reverse_ingress<VertexData, EdgeData>;
 
     typedef graphlab::vertex_id_type vertex_id_type;
@@ -785,7 +786,7 @@ namespace graphlab {
         }
       }
       set_ingress_method(ingress_method, bufsize, usehash, userecent, favorite,
-        threshold, nedges, nverts, interval, lookup);
+        threshold, nedges, nverts, interval, metis_lookup_file);
     }
 
   public:
@@ -3381,7 +3382,7 @@ namespace graphlab {
         ingress_ptr = new distributed_fennel_ingress<VertexData, EdgeData>(rpc.dc(), *this, nedges, nverts, false, false);
       } else if  (method == "metis") {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use METIS ingress with lookup: " << metis_lookup_file << std::endl;
-        ingress_ptr = new distributed_metis_ingress<VertexData, EdgeData>(rpc.dc(), *this, true, false);
+        ingress_ptr = new distributed_metis_ingress<VertexData, EdgeData>(rpc.dc(), *this, metis_lookup_file);
       } else if (method =="dbh") {
         if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
         ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);
