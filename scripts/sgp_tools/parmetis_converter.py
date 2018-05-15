@@ -42,6 +42,7 @@ for partition in range(nparts):
 	# create the files
 	xadjFile = open(os.path.join(outputDir, "xadj_" + str(partition) ), 'w')
 	adjncyFile = open(os.path.join(outputDir, "adjncy_" + str(partition) ), 'w')
+	vwgtFile = open(os.path.join(outputDir, "vwgt_" + str(partition) ), 'w')
 	currentVertex = 0
 	currentEdge = 0
 
@@ -50,12 +51,16 @@ for partition in range(nparts):
 		# we need to remove 1 as parmetis accepts c style lists
 		neighbours = [x-1 for x in vertexList]
 		xadjFile.write(str(currentEdge) + " ")
+		vwgtFile.write(str(len(neighbours)) + " ")
 		currentEdge += len(neighbours)
 		adjncyFile.write(" ".join(map(str, neighbours)) + " ")
 		currentVertex += 1
 
+	# write last edge count, it will be ignored by parmetis
+	xadjFile.write(str(currentEdge))
 	xadjFile.close()
 	adjncyFile.close()
+	vwgtFile.close()
 
 # we can close the input file
 metisGraph.close()
