@@ -66,7 +66,7 @@ namespace graphlab {
                                const std::string &val) {
       options[opt].strval = val;
       try {
-        options[opt].intval = boost::lexical_cast<int>(val);
+        options[opt].intval = boost::lexical_cast<size_t>(val);
       } catch(boost::bad_lexical_cast& error) {options[opt].intval = 0; }
       try {
         options[opt].dblval = boost::lexical_cast<double>(val);
@@ -82,7 +82,7 @@ namespace graphlab {
         set_option_str(opt, robust_cast<std::string>(val));
       } else {
         options[opt].strval  = robust_cast<std::string>(val);
-        options[opt].intval  = robust_cast<int>(val);
+        options[opt].intval  = robust_cast<size_t>(val);
         options[opt].dblval  = robust_cast<double>(val);
         options[opt].boolval = robust_cast<bool>(val);
       }
@@ -185,7 +185,7 @@ namespace graphlab {
     /// The internal storage of the options
     struct option_values{
       std::string strval;
-      int intval;
+      size_t intval;
       double dblval;
       bool boolval;
       option_values () : intval(0), dblval(0), boolval(false) { }
