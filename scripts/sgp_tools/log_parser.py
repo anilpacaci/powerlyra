@@ -17,7 +17,7 @@ log_files		= []
 log_files = [os.path.join(log_directory,file) for file in os.listdir(log_directory) if os.path.isfile(os.path.join(log_directory, file))]
 
 with open(output_csv_file, 'w') as csv_file:
-	fieldnames = ['algorithm', 'partitions', 'ingress', 'rf', 'total_ingress', 
+	fieldnames = ['file', 'algorithm', 'partitions', 'ingress', 'rf', 'total_ingress', 
 	'compute_imbalance', 'total_time', 'total_network']
 	writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 	writer.writeheader()
@@ -25,7 +25,8 @@ with open(output_csv_file, 'w') as csv_file:
 	# start processing the files
 	for log_file in log_files:
 		# variables that we try to extract from the log
-		algorithm		= 0
+		algorithm		= ""
+		file			= ""
 		nparts			= 0
 		ingress			= ""
 		rf				= 0
@@ -47,8 +48,9 @@ with open(output_csv_file, 'w') as csv_file:
 		calls_sent		= 0
 		calls_received	= 0
 		network_sent	= 0
-
-		algorithm = log_file.split("/")[-1].split("-")[0]
+                
+		file = log_file.split("/")[-1]
+		algorithm = file.split("-")[0]
 		with open(log_file, 'r') as logs:
 			for log in logs:
 				# now we need to check for each occurance of parameters that we try to parse
@@ -114,6 +116,7 @@ with open(output_csv_file, 'w') as csv_file:
 
 		# write result into csv
 		writer.writerow({
+			'file' : file,
 			'algorithm' : algorithm,
 			'partitions' : str(nparts), 
 			'ingress' : ingress, 
