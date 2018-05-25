@@ -7,8 +7,11 @@ import shlex
 snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
 adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
 
-#snap_dataset	= "/home/apacaci/datasets/USA-road/USA-road-snap/part-00000"
-#adj_dataset	= "/home/apacaci/datasets/USA-road/USA-road-adjacency/part-00000"
+# snap_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-snap-combined.txt"
+# adj_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-adjacency-combined.txt"
+
+# snap_dataset	= "/home/apacaci/datasets/USA-road/USA-road-snap/part-00000"
+# adj_dataset	= "/home/apacaci/datasets/USA-road/USA-road-adjacency/part-00000"
 
 result_folder	= "/home/apacaci/experiments/powerlyra/results/twitter"
 log_folder	= "/home/apacaci/experiments/powerlyra/logs/twitter"
@@ -37,12 +40,14 @@ class PowerLyraRun:
 	graph_format	= "snap"
 	ingress			= "random"
 	lookup			= ""
-	iterations		= 0
+	source			= -1
+	directed		= "true"
+	iterations		= -1
 	engine			= "plsync"
 	result_file		= ""
 	log_file		= ""
 
-	def __init__(self, machines, cpu_per_node, graph_nodes, graph_edges, algorithm, graph_format, ingress, lookup, iterations, engine):
+	def __init__(self, machines, cpu_per_node, graph_nodes, graph_edges, algorithm, graph_format, ingress, lookup, source, directed, iterations, engine):
 		self.machines = machines
 		self.cpu_per_node = cpu_per_node
 		self.graph_nodes = graph_nodes
@@ -51,6 +56,8 @@ class PowerLyraRun:
 		self.graph_format = graph_format
 		self.ingress = ingress
 		self.lookup = lookup
+		self.source = source
+		self.directed = directed
 		self.iterations = iterations
 		self.engine = engine
 		# generate name from parameters
@@ -70,6 +77,9 @@ class PowerLyraRun:
 		else:
 			command += "--graph_opts ingress={},nedges={},nverts={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
 
+		if self.algorithm == "sssp":
+			command += "--source {} --directed {} ".format(self.source, self.directed)
+
 		command += "--format {} ".format(self.graph_format)
 		# provide proper graph based on the format
 		if self.graph_format == "snap":
@@ -78,7 +88,7 @@ class PowerLyraRun:
 			command += "--graph {} ".format(adj_dataset)
 
 		# set iterations only if its provided, not equal to zero
-		if self.iterations > 0:
+		if self.iterations > -1:
 			command += "--iterations {} ".format(str(self.iterations))
 
 		command += "--engine {} ".format(self.engine)
@@ -94,7 +104,7 @@ run_list = []
 with open(parameters, 'rb') as parameters_file:
 	parameters_csv = csv.DictReader(parameters_file)
 	for row in parameters_csv:
-		run_list.append(PowerLyraRun(int(row['nodes']), int(row['pernode']), int(row['nverts']), int(row['nedges']), row['algorithm'], row['format'], row['ingress'], row.get('lookup', ""), int(row['iterations']), row['engine']))
+		run_list.append(PowerLyraRun(int(row['nodes']), int(row['pernode']), int(row['nverts']), int(row['nedges']), row['algorithm'], row['format'], row['ingress'], row.get('lookup', ""), row.get('source', -1), row.get('directed', "true"), int(row['iterations']), row['engine']))
 
 	# run each command one by one
 	for run in run_list:
