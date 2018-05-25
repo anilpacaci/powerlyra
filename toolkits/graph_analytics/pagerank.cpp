@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
   // Enable gather caching in the engine
   clopts.get_engine_args().set_option("use_cache", USE_DELTA_CACHE);
 
-  if (ITERATIONS) {
+  if (clopts.is_set("iterations") || clopts.get_engine_args().is_set("iterations")) {
     // make sure this is the synchronous engine
     dc.cout() << "--iterations set. Forcing Synchronous engine, and running "
               << "for " << ITERATIONS << " iterations." << std::endl;
