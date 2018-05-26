@@ -106,7 +106,6 @@ struct max_distance_type : graphlab::IS_POD_TYPE {
  */
 class sssp_gather :
   public graphlab::ivertex_program<graph_type,
-				   min_distance_type, 
                                    min_distance_type>,
   public graphlab::IS_POD_TYPE {
   distance_type min_dist;
@@ -127,7 +126,7 @@ public:
     */
     min_distance_type gather(icontext_type& context, const vertex_type& vertex, 
                              edge_type& edge) const {
-      return min_distance_type(edge.data().dist + 
+      return min_distance_type(1 + 
                                get_other_vertex(edge, vertex).data().dist);
     } // end of gather function
 
@@ -221,7 +220,7 @@ int main(int argc, char** argv) {
   // Initialize control plain using mpi
   graphlab::mpi_tools::init(argc, argv);
   graphlab::distributed_control dc;
-  global_logger().set_log_level(LOG_INFO);
+  global_logger().set_log_level(LOG_DEBUG);
 
   // Parse command line options -----------------------------------------------
   graphlab::command_line_options 
@@ -330,7 +329,7 @@ int main(int argc, char** argv) {
   // Signal all the vertices in the source set
   for(size_t i = 0; i < sources.size(); ++i) {
     dc.cout() << "Using Source " << sources[i] << std::endl;
-    engine.signal(sources[i], min_distance_type(0));
+    engine.signal(sources[i]);
   }
 
   timer.start();

@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 
   graphlab::mpi_tools::init(argc, argv);
   graphlab::distributed_control dc;
-  global_logger().set_log_level(LOG_DEBUG);
+  global_logger().set_log_level(LOG_INFO);
   //parse options
   graphlab::command_line_options clopts("Connected Component.");
   std::string graph_dir;
@@ -163,6 +163,8 @@ int main(int argc, char** argv) {
   clopts.add_positional("graph");
   clopts.attach_option("format", format,
                        "The graph file format");
+  clopts.attach_option("engine", exec_type,
+                       "The engine type synchronous or asynchronous");
   clopts.attach_option("saveprefix", saveprefix,
                        "If set, will save the pairs of a vertex id and "
                        "a component id to a sequence of files with prefix "
