@@ -2953,8 +2953,11 @@ namespace graphlab {
      *        master vertex on this machine and false otherwise.
      */
     bool is_master(vertex_id_type vid) const {
-      const procid_t owning_proc = graph_hash::hash_vertex(vid) % rpc.numprocs();
-      return (owning_proc == rpc.procid());
+      if( vid2lvid.find(vid) == vid2lvid.end() ) {
+          return false;
+      }
+      // vertex is local so we can check it lvid map
+      return l_is_master(vid2lvid[vid]);
     }
 
 
