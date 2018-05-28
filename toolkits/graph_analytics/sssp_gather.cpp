@@ -105,8 +105,7 @@ struct max_distance_type : graphlab::IS_POD_TYPE {
  * \brief The single source shortest path vertex program.
  */
 class sssp_gather :
-  public graphlab::ivertex_program<graph_type, 
-                                   min_distance_type,
+  public graphlab::ivertex_program<graph_type,
                                    min_distance_type>,
   public graphlab::IS_POD_TYPE {
   distance_type min_dist;
@@ -118,7 +117,7 @@ public:
    */
   edge_dir_type gather_edges(icontext_type& context, 
                              const vertex_type& vertex) const { 
-    return DIRECTED_SSSP? graphlab::OUT_EDGES : graphlab::ALL_EDGES; 
+    return DIRECTED_SSSP? graphlab::IN_EDGES : graphlab::ALL_EDGES; 
   }; // end of gather_edges 
 
 
@@ -127,8 +126,8 @@ public:
     */
     min_distance_type gather(icontext_type& context, const vertex_type& vertex, 
                              edge_type& edge) const {
-      return min_distance_type(edge.data() + 
-                               get_other_vertex(edge, vertex).data());
+      return min_distance_type(1 + 
+                               get_other_vertex(edge, vertex).data().dist);
     } // end of gather function
 
 
@@ -138,10 +137,16 @@ public:
   void apply(icontext_type& context, vertex_type& vertex,
              const min_distance_type& total) {
     changed = false;
-    if(vertex.data().dist > total) {
+    if(vertex.data().dist > total.dist) {
       changed = true;
-      vertex.data().dist = total;
+      vertex.data().dist = total.dist;
     }
+	
+	// activate neighbours at first iteration no matter what
+	if(context.iteration() == 0) {
+		vertex.data().dist = 0;
+		changed = true;
+	}
   }
 
   /**
@@ -163,7 +168,6 @@ public:
       // so no need to check again. If changed, signal all neighbours
       const vertex_type other = get_other_vertex(edge, vertex);
       context.signal(other);
-    }
   } // end of scatter
 
 }; // end of shortest path vertex program
@@ -216,7 +220,7 @@ int main(int argc, char** argv) {
   // Initialize control plain using mpi
   graphlab::mpi_tools::init(argc, argv);
   graphlab::distributed_control dc;
-  global_logger().set_log_level(LOG_INFO);
+  global_logger().set_log_level(LOG_DEBUG);
 
   // Parse command line options -----------------------------------------------
   graphlab::command_line_options 
@@ -320,12 +324,12 @@ int main(int argc, char** argv) {
 
 
   // Running The Engine -------------------------------------------------------
-  graphlab::omni_engine<sssp> engine(dc, graph, exec_type, clopts);
+  graphlab::omni_engine<sssp_gather> engine(dc, graph, exec_type, clopts);
 
   // Signal all the vertices in the source set
   for(size_t i = 0; i < sources.size(); ++i) {
     dc.cout() << "Using Source " << sources[i] << std::endl;
-    engine.signal(sources[i], min_distance_type(0));
+    engine.signal(sources[i]);
   }
 
   timer.start();
