@@ -2957,7 +2957,7 @@ namespace graphlab {
           return false;
       }
       // vertex is local so we can check it lvid map
-      return l_is_master(vid2lvid[vid]);
+      return l_is_master(local_vid(vid));
     }
 
 
