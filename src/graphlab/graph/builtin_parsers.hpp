@@ -258,6 +258,10 @@ namespace graphlab {
          //  End grammar
          ascii::space); 
       // Test to see if the boost parser was able to parse the line
+      if(ntargets == 0 || targets.size() == 0) {
+          logstream(LOG_ERROR) << "Parse error in vertex, empty adjacency list" << std::endl;
+          return true;
+      }
       if(!success || ntargets != targets.size()) {
         logstream(LOG_ERROR) << "Parse error in vertex prior parser." << std::endl;
         return false;

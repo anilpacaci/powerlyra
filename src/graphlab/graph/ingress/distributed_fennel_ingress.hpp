@@ -178,7 +178,7 @@ namespace graphlab {
             for (size_t i = 0; i < adjacency_list.size(); i++) {
                 vertex_id_type target = adjacency_list[i];
                 if (vid == target) {
-                    return;
+                    continue;
                 }
                 const edge_buffer_record record(vid, target);
                 base_type::edge_exchange.send(owning_proc, record, omp_get_thread_num());
