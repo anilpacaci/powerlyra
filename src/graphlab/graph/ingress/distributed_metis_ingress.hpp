@@ -117,8 +117,8 @@ namespace graphlab {
 
         procid_t owning_proc;
         if (lookup_table.find(vid) == lookup_table.end()) {
-            owning_proc = 0;
-            logstream(LOG_WARNING) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
+            owning_proc = graph_hash::hash_vertex(vid) % base_type::rpc.numprocs();
+            logstream(LOG_DEBUG) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
         } else {
             owning_proc = lookup_table[vid];
         }
