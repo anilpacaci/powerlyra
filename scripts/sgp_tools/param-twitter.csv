@@ -1,13 +1,2 @@
 nodes,pernode,nedges,nverts,format,ingress,algorithm,iterations,engine,lookup,source,directed
-16,1,1468364884,41652230,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition16/part-00000,,
-32,1,1468364884,41652230,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition32/part-00000,,
-64,2,1468364884,41652230,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition64/part-00000,,
-128,4,1468364884,41652230,adj_ec,metis,pagerank,20,plsyncec,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition128/part-00000,,
-16,1,1468364884,41652230,adj_ec,metis,connected_component,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition16/part-00000,,
-32,1,1468364884,41652230,adj_ec,metis,connected_component,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition32/part-00000,,
-64,2,1468364884,41652230,adj_ec,metis,connected_component,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition64/part-00000,,
-128,4,1468364884,41652230,adj_ec,metis,connected_component,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition128/part-00000,,
-16,1,1468364884,41652230,adj_ec,metis,sssp,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition16/part-00000,6257722,true
-32,1,1468364884,41652230,adj_ec,metis,sssp,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition32/part-00000,6257722,true
-64,2,1468364884,41652230,adj_ec,metis,sssp,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition64/part-00000,6257722,true
-128,4,1468364884,41652230,adj_ec,metis,sssp,0,plsync,/home/apacaci/datasets/twitter_rv/twitter_rv_metis_partition128/part-00000,6257722,true
+128,4,1468364884,41652230,adj_ec,random_ec,connected_component,-1,plsync,,,

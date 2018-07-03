@@ -4,17 +4,17 @@ import csv
 import os
 import shlex
 
-snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
-adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
+# snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
+# adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
 
-# snap_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-snap-combined.txt"
-# adj_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-adjacency-combined.txt"
+snap_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-snap-combined.txt"
+adj_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-adjacency-combined.txt"
 
 # snap_dataset	= "/home/apacaci/datasets/USA-road/USA-road-snap/part-00000"
 # adj_dataset	= "/home/apacaci/datasets/USA-road/USA-road-adjacency/part-00000"
 
-result_folder	= "/home/apacaci/experiments/powerlyra/results/twitter"
-log_folder	= "/home/apacaci/experiments/powerlyra/logs/twitter"
+result_folder	= "/home/apacaci/experiments/powerlyra/results/uk2007-05"
+log_folder	= "/home/apacaci/experiments/powerlyra/logs/uk2007-05"
 
 
 # csv file should have following headers
@@ -27,7 +27,7 @@ log_folder	= "/home/apacaci/experiments/powerlyra/logs/twitter"
 # ingress 		: partitioning strategy
 # engine 		: plsync for vertex cut and plsyncec for edgecut
 # iterations 	: number of supersteps, set to 0 to wait for convergence
-parameters 		= "param-twitter.csv"
+parameters 		= "param-uk.csv"
 
 # an object holding parameters for experiment and return the command line string to be executed
 class PowerLyraRun:
@@ -77,7 +77,7 @@ class PowerLyraRun:
 		else:
 			command += "--graph_opts ingress={},nedges={},nverts={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes))
 
-		if self.algorithm == "sssp":
+		if self.algorithm.startswith("sssp"):
 			command += "--source {} --directed {} ".format(self.source, self.directed)
 
 		command += "--format {} ".format(self.graph_format)
