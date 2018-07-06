@@ -4,17 +4,17 @@ import csv
 import os
 import shlex
 
-# snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
-# adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
+snap_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_snap/twitter_rv.net"
+adj_dataset	= "/home/apacaci/datasets/twitter_rv/twitter_rv_adj_ec_combined.txt"
 
-snap_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-snap-combined.txt"
-adj_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-adjacency-combined.txt"
+# snap_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-snap-combined.txt"
+# adj_dataset	= "/home/apacaci/datasets/uk2007-05/uk2007-05-adjacency-combined.txt"
 
 # snap_dataset	= "/home/apacaci/datasets/USA-road/USA-road-snap/part-00000"
 # adj_dataset	= "/home/apacaci/datasets/USA-road/USA-road-adjacency/part-00000"
 
-result_folder	= "/home/apacaci/experiments/powerlyra/results/uk2007-05"
-log_folder	= "/home/apacaci/experiments/powerlyra/logs/uk2007-05"
+result_folder	= "/home/apacaci/experiments/powerlyra/results/twitter-threading"
+log_folder	= "/home/apacaci/experiments/powerlyra/logs/twitter-threading"
 
 
 # csv file should have following headers
@@ -27,7 +27,7 @@ log_folder	= "/home/apacaci/experiments/powerlyra/logs/uk2007-05"
 # ingress 		: partitioning strategy
 # engine 		: plsync for vertex cut and plsyncec for edgecut
 # iterations 	: number of supersteps, set to 0 to wait for convergence
-parameters 		= "param-uk.csv"
+parameters 		= "param-twitter-threading.csv"
 
 # an object holding parameters for experiment and return the command line string to be executed
 class PowerLyraRun:
@@ -70,7 +70,8 @@ class PowerLyraRun:
 		command += "-n {} -npernode {} ".format(str(self.machines), str(self.cpu_per_node))
 		command += "-hostfile ~/machines "
 		command += "/hdd1/gp/tools/powerlyra/release/toolkits/graph_analytics/{} ".format(self.algorithm)
-		command += "--ncpus {} ".format(str(self.cpu_per_node))
+		# following command control the number of cpus per instance, it uses all cores for threading by default
+		#command += "--ncpus {} ".format(str(self.cpu_per_node))
 		# metis needs special parameters to set lookup file
 		if self.ingress == "metis":
 			command += "--graph_opts ingress={},nedges={},nverts={},lookup={} ".format(self.ingress, str(self.graph_edges), str(self.graph_nodes), self.lookup)
