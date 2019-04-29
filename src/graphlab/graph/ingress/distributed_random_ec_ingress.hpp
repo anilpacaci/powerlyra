@@ -20,6 +20,14 @@
  *
  */
 
+/*
+ * 
+ * @author: anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Random edge-cut partitioner.
+ * Each vertex and all of its outgoing edges are hashed to a partition
+ */
+
 #ifndef GRAPHLAB_DISTRIBUTED_RANDOM_EC_INGRESS_HPP
 #define GRAPHLAB_DISTRIBUTED_RANDOM_EC_INGRESS_HPP
 
@@ -65,7 +73,8 @@ namespace graphlab {
 
     /** Add an edge to the ingress object using random assignment. */
     void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
-                  const VertexData& vdata) {      
+                  const VertexData& vdata) {    
+      // choose the partition using a hash function
       const procid_t owning_proc = graph_hash::hash_vertex(vid) % base_type::rpc.numprocs();
       
       const vertex_buffer_record record(vid, vdata);      

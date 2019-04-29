@@ -23,7 +23,20 @@
  *
  */
 
-
+/*
+ * 
+ * @author anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Copy of the powerlyra_sync_engine except it is optimized for edge-cut model
+ * In edge-cut model, all outgoing edges of a vertex is grouped together, making 
+ * it equivelant to sender side aggregation. For more details:
+ * 
+ * Anil Pacaci and M. Tamer Özsu. 2019.
+ * Experimental Analysis of Streaming Algorithms for Graph Partitioning. 
+ * In 2019 International Conference on Management of Data (SIGMOD ’19), 
+ * June 30-July 5, 2019, 
+ * Amsterdam, Netherlands. ACM, New York, NY, USA
+ */
 
 #ifndef GRAPHLAB_POWERLYRA_SYNC_EC_ENGINE_HPP
 #define GRAPHLAB_POWERLYRA_SYNC_EC_ENGINE_HPP

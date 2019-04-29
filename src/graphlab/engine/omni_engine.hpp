@@ -46,6 +46,14 @@
  *
  */
 
+/*
+ * 
+ * @author anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Added options to enable edge-cut sync engine:
+ * powerlyra_sync_ec_engine
+ */
+
 
 #ifndef GRAPHLAB_OMNI_ENGINE_HPP
 #define GRAPHLAB_OMNI_ENGINE_HPP

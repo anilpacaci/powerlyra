@@ -20,6 +20,14 @@
  *
  */
 
+/*
+ * 
+ * @author: anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Random edge-cut partitioner.
+ * Each vertex and all of its incoming edges are hashed to a partition
+ */
+
 #ifndef GRAPHLAB_DISTRIBUTED_RANDOM_EC_REVERSE_INGRESS_HPP
 #define GRAPHLAB_DISTRIBUTED_RANDOM_EC_REVERSE_INGRESS_HPP
 

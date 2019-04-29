@@ -133,7 +133,7 @@ namespace graphlab {
 
     virtual ~distributed_ingress_base() { }
 
-    /** \brief Add an edge to the ingress object. */
+    /** \brief Add an edge to the ingress object, used by vertex-cut loaders */
     virtual void add_edge(vertex_id_type source, vertex_id_type target,
                           const EdgeData& edata) {
       const procid_t owning_proc = 
@@ -147,7 +147,7 @@ namespace graphlab {
     } // end of add edge
 
 
-    /** \brief Add an vertex to the ingress object. */
+    /** \brief Add an vertex to the ingress object, used by random edge-cut loaders */
     virtual void add_vertex(vertex_id_type vid, const VertexData& vdata)  { 
       const procid_t owning_proc = graph_hash::hash_vertex(vid) % rpc.numprocs();
       const vertex_buffer_record record(vid, vdata);
@@ -158,7 +158,11 @@ namespace graphlab {
 #endif
     } // end of add vertex
     
-    /** \brief Add an vertex to the ingress object. */
+    /**
+     * \brief Adds a vertex to the ingress object, used by greedy edge-cut loaders
+     * vertex_id_type               vid: ID of the vertex
+     * std::vector<vertex_id_type>  adjacency_list: list of neighbour vertices 
+     */
     virtual void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list, const VertexData& vdata)  { 
       const procid_t owning_proc = graph_hash::hash_vertex(vid) % rpc.numprocs();
       const vertex_buffer_record record(vid, vdata);
@@ -597,6 +601,7 @@ namespace graphlab {
         foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
             vertex_record& vrec = graph.lvid2record[pair.second];
             vrec.gvid = pair.first;
+            // random assignment by vertex hashing by default
             vrec.owner = graph_hash::hash_vertex(pair.first) % rpc.numprocs();
         }
         ASSERT_EQ(local_nverts, graph.local_graph.num_vertices());

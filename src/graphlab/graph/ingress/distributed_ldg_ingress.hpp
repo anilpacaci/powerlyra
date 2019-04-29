@@ -20,6 +20,16 @@
  *
  */
 
+/*
+ * 
+ * @author: anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Implementation of the Linear Deterministic Greedy from the publication:
+ * Stanton I, Kliot G. 
+ * Streaming graph partitioning for large distributed graphs. 
+ * InProceedings of the 18th ACM SIGKDD international conference on 
+ * Knowledge discovery and data mining 2012 Aug 12 (pp. 1222-1230). ACM.
+ */
 #ifndef GRAPHLAB_DISTRIBUTED_LDG_INGRESS_HPP
 #define GRAPHLAB_DISTRIBUTED_LDG_INGRESS_HPP
 
@@ -77,12 +87,15 @@ namespace graphlab {
         typedef typename std::pair<vertex_id_type, procid_t>
             placement_pair_type;
 
+        // vertex to partition mapping
         placement_hash_table_type dht_placement_table;
+        // buffer for vertex placement decisions among workers 
         std::vector<placement_pair_type> placement_buffer;
         rwlock dht_placement_table_lock;
         
 	size_t PLACEMENT_BUFFER_THRESHOLD = 65536;       
  
+        // current size of each partition
         std::vector<size_t> partition_capacity;
 
         const size_t tot_nedges;
@@ -121,7 +134,7 @@ namespace graphlab {
         ~distributed_ldg_ingress() {
         }
 
-        /** Add an edge to the ingress object using random assignment. */
+        /** Add an edge to the ingress object using LDG scoring policy. */
         void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
                 const VertexData& vdata) {
             // initialize all neighbour counts with 0
@@ -217,6 +230,7 @@ namespace graphlab {
         foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
             vertex_record& vrec = base_type::graph.lvid2record[pair.second];
             vrec.gvid = pair.first;
+            // master copy is assigned to partition decided by the algorithm
             vrec.owner = dht_placement_table[pair.first];
         }
         ASSERT_EQ(local_nverts, base_type::graph.local_graph.num_vertices());
@@ -277,6 +291,10 @@ namespace graphlab {
             }
         }
         
+        /* remote procedure to be called by other workers
+         * to synchronize placement table.
+         * Each worker broadcasts the placement buffer they locally processed 
+         */
         void block_add_placement_pair(procid_t pid, std::vector<placement_pair_type>& placement_buffer) {
             dht_placement_table_lock.writelock();
             

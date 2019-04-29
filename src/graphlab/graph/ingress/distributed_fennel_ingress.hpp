@@ -114,7 +114,7 @@ namespace graphlab {
             self_pid = fennel_rpc.procid();
 
             // fennel specific parameters
-            gamma = 1.5;
+            gamma = 1.5; // optimal specified in  the paper
             alpha = sqrt(nprocs) * double(tot_nedges) / pow(tot_nverts, gamma);
             
             if(edge_balanced) {

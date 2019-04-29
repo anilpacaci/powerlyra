@@ -28,7 +28,7 @@ namespace graphlab {
   class distributed_graph;
 
   /**
-   * \brief Ingress object assigning edges using randoming hash function on
+   * \brief Ingress object assigning edges using random hash function on
    * vertex with higher degree between source and target
    */
   template<typename VertexData, typename EdgeData>

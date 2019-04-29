@@ -20,6 +20,21 @@
  *
  */
 
+/*
+ * 
+ * @author: anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Implementation of the Linear Deterministic Greedy using the incoming edges
+ * not used in SIGMOD'19 paper
+ * 
+ * from the publication:
+ * 
+ * Stanton I, Kliot G. 
+ * Streaming graph partitioning for large distributed graphs. 
+ * InProceedings of the 18th ACM SIGKDD international conference on 
+ * Knowledge discovery and data mining 2012 Aug 12 (pp. 1222-1230). ACM.
+ */
+
 #ifndef GRAPHLAB_DISTRIBUTED_LDG_REVERSE_INGRESS_HPP
 #define GRAPHLAB_DISTRIBUTED_LDG_REVERSE_INGRESS_HPP
 

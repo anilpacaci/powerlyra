@@ -20,6 +20,16 @@
  *
  */
 
+/*
+ * 
+ * @author: anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Manual loader for explicit partitioning assignemnts. 
+ * It does not invoke METIS or any partitioning algorithm. It simply uses 
+ * partitioning results of an external partitioning algorithm.
+ * It is used to force PowerLyra to apply partitioning produced by METIS.
+ */
+
 #ifndef GRAPHLAB_DISTRIBUTED_METIS_INGRESS_HPP
 #define GRAPHLAB_DISTRIBUTED_METIS_INGRESS_HPP
 
@@ -77,9 +87,12 @@ namespace graphlab {
     dc_dist_object<distributed_metis_ingress> metis_rpc;
 
     
-    // full path to lookup file
+    // Full file path to METIS partitioning file
+    // Each line is a partitioning assignment produced by METIS software
+    // i.e. `234 15` vertex 234 to partition 15
     std::string metis_lookup_file;
     
+    // lookup table populated using the lookup_file produced by METIS
     lookup_table_type lookup_table;
     
   public:
@@ -91,6 +104,7 @@ namespace graphlab {
 	vertex_id_type vid;
 	procid_t owning_proc;
 
+        // Read file line by line and populate the lookup table
         while(in_file.good() && !in_file.eof()) {
             std::string line;
             std::getline(in_file, line);
@@ -111,15 +125,17 @@ namespace graphlab {
 
     ~distributed_metis_ingress() { }
 
-    /** Add a vertex to the ingress object using lookup table. */
+    /** \brief Add a vertex to the ingress object using the lookup table. */
     void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
             const VertexData& vdata) {
 
         procid_t owning_proc;
         if (lookup_table.find(vid) == lookup_table.end()) {
+            // default to hash if vertex does not appear in lookup table
             owning_proc = graph_hash::hash_vertex(vid) % base_type::rpc.numprocs();
             logstream(LOG_DEBUG) << "Lookup entry cannot be found for vertex: " << vid << std::endl;
         } else {
+            // simply use the partitioning decision made by METIS
             owning_proc = lookup_table[vid];
         }
 
@@ -154,6 +170,7 @@ namespace graphlab {
         foreach(const vid2lvid_pair_type& pair, vid2lvid_buffer) {
             vertex_record& vrec = base_type::graph.lvid2record[pair.second];
             vrec.gvid = pair.first;
+            // master copy of each vertex is the same as owning partition
             vrec.owner = lookup_table[pair.first];
         }
         ASSERT_EQ(local_nverts, base_type::graph.local_graph.num_vertices());

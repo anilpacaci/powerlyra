@@ -29,6 +29,13 @@
  *
  */
 
+/*
+ * 
+ * @author anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * option_map uses size_t instead of int to accommadate large graphs
+ */
+
 
 #ifndef GRAPHLAB_OPTIONS_MAP_HPP
 #define GRAPHLAB_OPTIONS_MAP_HPP

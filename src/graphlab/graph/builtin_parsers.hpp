@@ -45,6 +45,14 @@
  *      http://www.graphlab.ml.cmu.edu
  *
  */
+
+/*
+ * 
+ * @author anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * additional parser for adjacency list format
+ */
+
 #ifndef GRAPHLAB_GRAPH_BUILTIN_PARSERS_HPP
 #define GRAPHLAB_GRAPH_BUILTIN_PARSERS_HPP
 
