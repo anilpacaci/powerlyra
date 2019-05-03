@@ -20,6 +20,27 @@
  *
  */
 
+/*
+ * 
+ * @author anilpacaci <apacaci at uwaterloo.ca>
+ * 
+ * Based on pagerank.cpp
+ * It should be called with <powerlyra_sync_ec> engine as it is optimized for
+ * edge-cut partitioning model where all outgoing edges of a vertex 
+ * is grouped together, so that <scatter>s can be performed locally.
+ * In a nutshell, this version sends the vertex data with scatter messages 
+ * whereas original PowerLyra implementation simply gathers (pulls) vertex data.
+ * It has NOT been used in the paper, only for internal experiments.
+ * 
+ * For more details about the experimental setup:
+ * 
+ * Anil Pacaci and M. Tamer Özsu. 2019.
+ * Experimental Analysis of Streaming Algorithms for Graph Partitioning. 
+ * In 2019 International Conference on Management of Data (SIGMOD ’19), 
+ * June 30-July 5, 2019, 
+ * Amsterdam, Netherlands. ACM, New York, NY, USA
+ */
+
 #include <vector>
 #include <string>
 #include <fstream>
