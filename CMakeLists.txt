@@ -165,7 +165,7 @@ endmacro(requires_eigen)
 # libbz  =================================================================
 ExternalProject_Add(libbz2
   PREFIX ${GraphLab_SOURCE_DIR}/deps/libbz2
-  URL http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+  URL https://versaweb.dl.sourceforge.net/project/bzip2/bzip2-1.0.6.tar.gz
   URL_MD5 00b516f4704d4a7cb50a1d97e6e8e15b
   INSTALL_DIR ${GraphLab_SOURCE_DIR}/deps/local
   CONFIGURE_COMMAND ""
@@ -391,7 +391,7 @@ endif()
 
 ExternalProject_Add(zookeeper
   PREFIX ${GraphLab_SOURCE_DIR}/deps/zookeeper
-  URL http://apache.cs.utah.edu/zookeeper/zookeeper-3.4.12/zookeeper-3.4.12.tar.gz
+  URL http://archive.apache.org/dist/zookeeper/zookeeper-3.4.12/zookeeper-3.4.12.tar.gz
   URL_MD5 f43cca610c2e041c71ec7687cddbd0c3
   PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${GraphLab_SOURCE_DIR}/patches/zookeeper/ <SOURCE_DIR>
   BUILD_IN_SOURCE 1
