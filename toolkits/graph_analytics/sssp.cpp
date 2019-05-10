@@ -105,49 +105,48 @@ struct max_distance_type : graphlab::IS_POD_TYPE {
  * \brief The single source shortest path vertex program.
  */
 class sssp :
-  public graphlab::ivertex_program<graph_type, 
-                                   graphlab::empty,
+  public graphlab::ivertex_program<graph_type,
                                    min_distance_type>,
   public graphlab::IS_POD_TYPE {
   distance_type min_dist;
   bool changed;
 public:
 
-
-  void init(icontext_type& context, const vertex_type& vertex,
-            const min_distance_type& msg) {
-    min_dist = msg.dist;
-  } 
-
   /**
    * \brief We use the messaging model to compute the SSSP update
    */
   edge_dir_type gather_edges(icontext_type& context, 
                              const vertex_type& vertex) const { 
-    return graphlab::NO_EDGES;
+    return DIRECTED_SSSP? graphlab::IN_EDGES : graphlab::ALL_EDGES; 
   }; // end of gather_edges 
 
 
-  // /** 
-  //  * \brief Collect the distance to the neighbor
-  //  */
-  // min_distance_type gather(icontext_type& context, const vertex_type& vertex, 
-  //                          edge_type& edge) const {
-  //   return min_distance_type(edge.data() + 
-  //                            get_other_vertex(edge, vertex).data());
-  // } // end of gather function
+   /** 
+    * \brief Collect the distance to the neighbor
+    */
+    min_distance_type gather(icontext_type& context, const vertex_type& vertex, 
+                             edge_type& edge) const {
+      return min_distance_type(1 + 
+                               get_other_vertex(edge, vertex).data().dist);
+    } // end of gather function
 
 
   /**
    * \brief If the distance is smaller then update
    */
   void apply(icontext_type& context, vertex_type& vertex,
-             const graphlab::empty& empty) {
+             const min_distance_type& total) {
     changed = false;
-    if(vertex.data().dist > min_dist) {
+    if(vertex.data().dist > total.dist) {
       changed = true;
-      vertex.data().dist = min_dist;
+      vertex.data().dist = total.dist;
     }
+	
+	// activate neighbours at first iteration no matter what
+	if(context.iteration() == 0) {
+		vertex.data().dist = 0;
+		changed = true;
+	}
   }
 
   /**
@@ -165,12 +164,10 @@ public:
    */
   void scatter(icontext_type& context, const vertex_type& vertex,
                edge_type& edge) const {
-    const vertex_type other = get_other_vertex(edge, vertex);
-    distance_type newd = vertex.data().dist + edge.data().dist;
-    if (other.data().dist > newd) {
-      const min_distance_type msg(newd);
-      context.signal(other, msg);
-    }
+      // scatter_edges return NO_EDGES in case there is no change
+      // so no need to check again. If changed, signal all neighbours
+      const vertex_type other = get_other_vertex(edge, vertex);
+      context.signal(other);
   } // end of scatter
 
 }; // end of shortest path vertex program
@@ -332,7 +329,7 @@ int main(int argc, char** argv) {
   // Signal all the vertices in the source set
   for(size_t i = 0; i < sources.size(); ++i) {
     dc.cout() << "Using Source " << sources[i] << std::endl;
-    engine.signal(sources[i], min_distance_type(0));
+    engine.signal(sources[i]);
   }
 
   timer.start();
