@@ -1,64 +1,61 @@
-# PowerLyra v1.0
-## License
+## PowerLyra
 
-PowerLyra is released under the [Apache 2 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+This is a fork of the original (https://github.com/realstolz/powerlyra)[PowerLyra] repository. Please refer to thet original (https://github.com/realstolz/powerlyra)[repository] for detailed instructions on usage and installation.
 
-If you use PowerLyra in your research, please cite our paper:
-```    
-    @inproceedings{Chen:eurosys2015powerlyra,
-     title = {PowerLyra: Differentiated Graph Computation and Partitioning on Skewed Graphs},
-     author = {Chen, Rong and Shi, Jiaxin and Chen, Yanzhe and Chen, Haibo},
-     booktitle = {Proceedings of the Tenth European Conference on Computer Systems},
-     series = {EuroSys '15},
-     year = {2015},
-     location = {Bordeaux, France},
-    }
+This modified version of PowerLyra has been used in an experimental analysis of streaming algorithm for graph partitioning. Please refer to our SIGMOD'19 paper for details:
+
+```
+Anil Pacaci and M. Tamer Özsu. 2019. Experimental Analysis of Streaming Algorithms for Graph Partitioning. 
+In 2019 International Conference on Management of Data (SIGMOD ’19), 
+June 30-July 5, 2019, Amsterdam, Netherlands. 
+ACM, New York, NY, USA, 18 pages. https://doi.org/10.1145/3299869.3300076
 ```
 
+## Changes
 
-## Introduction
+### Engines
 
-PowerLyra is based on the latest codebase of GraphLab PowerGraph (a distributed graph computation framework written in C++) and can seamlessly support all GraphLab toolkits. PowerLyra provides several new hybrid execution engines and partitioning algorithms to achieve optimal performance by leveraging input graph properties (e.g., power-law and bipartite). 
+1. Synchronus Edge-cut Engine `plsync_ec`
 
-PowerLyra New Features:
+This engine simulates the edge-cut model as in Giraph by grouping all out-edges of a vertex together in one machine. Both the `apply` and `scatter` phases can be done without any synchronization since all out-edges required for the scatter phase are placed locally. 
 
-* **Hybrid computation engine:** Exploit the locality of low-degree vertices and the parallelism of high-degree vertices
+To enable use `--engine plsync_ec` command line option.
 
-* **Hybrid partitioning algorithm:** Differentiate the partitioning algorithms for different types of vertices
+#### Ingress (Partitioning Methods)
 
-* **Diverse scheduling strategy:** Provide both synchronous and asynchronous computation engines
+1. Degree-base Hashing
 
-* **Compatible API:** Seamlessly support all GraphLab toolkits 
+Degree based randomized vertex-cut streaming partitioning algorithm. For more details:
 
-For more details on the PowerLyra see http://ipads.se.sjtu.edu.cn/projects/powerlyra.html, including new features, instructions, etc.
+```
 
+```
 
-### Hybrid Computation Engine
+To enable append `ingress=dbh` to `--graph_opts`
 
-We argue that skewed distribution in natural graphs also calls for differentiated processing of high-degree and low-degree vertices. PowerLyra uses Pregel/GraphLab-like computation models for process low-degree vertices to minimize computation, communication and synchronization overhead, and uses PowerGraph-like computation model for process high-degree vertices to reduce load imbalance, contention and memory pressure. PowerLyra follows the interface of GAS (Gather, Apply and Scatter) model and can seamlessly support various graph algorithms (e.g., all GraphLab toolkits).
+2. HDFR (PowerGraph Implementation)
 
-![Hybrid Computation Engine](images/hybrid_engine.png "Hybrid Computation Engine")
+To enable append `ingress=hdrf` to `--graph_opts`
 
+3. Random Edge-cut
 
-### Hybrid Graph Partitioning
+Hash based edge-cut partitioning algorithm. A vertex and its outgoing edges assigned to a machine by hashing the vertex id.
 
-PowerLyra additionally proposes a new hybrid graph cut algorithm that embraces the best of both worlds in edge-cut and vertex-cut, which evenly distributes low-degree vertices along with their edges like edge-cut, and evenly distributes edges of high-degree vertices like vertex-cut. Both theoretical analysis and empirical validation show that the expected replication factor of random hybrid-cut is alway better than both random (Hash-based), contrained (e.g., Grid), and heuristic (e.g., Oblivious or Coordinated) vertex-cut for skewed power-law graphs. 
+To enable append `ingress=random_ec` to `--graph_opts`
 
-![Hybrid Partitioning Algorithms](images/hybrid_cut.png "Hybrid Graph Partitioning")
+4. LDG
 
+To enable append `ingress=ldg` to `--graph_opts`
 
-## Academic and Conference Papers
+5. FENNEL
 
-Rong Chen, Jiaxin Shi, Yanzhe Chen and Haibo Chen. "[PowerLyra: Differentiated Graph Computation and Partitioning on Skewed Graphs](http://ipads.se.sjtu.edu.cn/projects/powerlyra/powerlyra-eurosys-final.pdf)." Proceeding of the 10th ACM SIGOPS European Conference on Computer Systems (EuroSys). Bordeaux, France. April, 2015.
-
-Rong Chen, Jiaxin Shi, Binyu Zang and Haibing Guan. "[BiGraph: Bipartite-oriented Distributed Graph Partitioning for Big Learning](http://ipads.se.sjtu.edu.cn/projects/powerlyra/bigraph-apsys14.pdf)." Proceeding of the 5th Asia-Pacific Workshop on Systems (APSys). Beijing, China. June, 2014.
-
-Rong Chen, Jiaxin Shi, Haibo Chen and Binyu Zang. "[Bipartite-oriented Distributed Graph Partitioning for Big Learning](http://ipads.se.sjtu.edu.cn/projects/powerlyra/bigraph-jcst.pdf)." Journal of Computer Science and Technology (JCST), 30(1), pp. 20-29. January, 2015.
-
-
-## Building
-
-The building, installation and tutorial of PowerLyra fully follow that of GraphLab PowerGraph. See README_GraphLab.txt for details.
+To enable append `ingress=fennel` to `--graph_opts`
 
 
+6. Explicit Partitioning
+
+To enable append `ingress=metis` to `--graph_opts`
+
+
+#### Graph Readers
 
