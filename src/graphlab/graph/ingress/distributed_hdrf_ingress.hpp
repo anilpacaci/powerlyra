@@ -83,17 +83,24 @@ namespace graphlab {
         /** Ingress tratis. */
         bool usehash;
         bool userecent;
+        
+        std::string partitioning_output_file;
+        std::ofstream out_file;
+        
 
     public:
 
         distributed_hdrf_ingress(distributed_control& dc, graph_type& graph, std::string output_file, bool usehash = false, bool userecent = false) :
         base_type(dc, graph),
-        dht(-1), degree_dht(-1), proc_num_edges(dc.numprocs()), usehash(usehash), userecent(userecent) {
+        dht(-1), degree_dht(-1), proc_num_edges(dc.numprocs()), usehash(usehash), userecent(userecent), 
+        partitioning_output_file(output_file), out_file(output_file.c_str(), std::ios_base::out) {
 
             //INITIALIZE_TRACER(ob_ingress_compute_assignments, "Time spent in compute assignment");
+            
         }
 
         ~distributed_hdrf_ingress() {
+            out_file.close();
         }
 
         /** Add an edge to the ingress object using hdrf greedy assignment. */
@@ -107,7 +114,7 @@ namespace graphlab {
             const procid_t owning_proc =
                     base_type::edge_decision.edge_to_proc_hdrf(source, target, dht[source], dht[target], degree_dht[source], degree_dht[target], proc_num_edges, usehash, userecent);
 
-            
+            out_file << source << ";" << target << ";" << owning_proc << std::endl;
             
             typedef typename base_type::edge_buffer_record edge_buffer_record;
             edge_buffer_record record(source, target, edata);
