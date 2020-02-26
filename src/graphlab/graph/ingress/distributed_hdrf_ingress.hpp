@@ -92,7 +92,7 @@ namespace graphlab {
 
         distributed_hdrf_ingress(distributed_control& dc, graph_type& graph, std::string output_file, bool usehash = false, bool userecent = false) :
         base_type(dc, graph),
-        dht(-1), degree_dht(-1), proc_num_edges(dc.numprocs()), usehash(usehash), userecent(userecent), 
+        dht(-1), degree_dht(-1), proc_num_edges(1024), usehash(usehash), userecent(userecent), 
         partitioning_output_file(output_file), out_file(output_file.c_str(), std::ios_base::out) {
 
             //INITIALIZE_TRACER(ob_ingress_compute_assignments, "Time spent in compute assignment");
@@ -118,7 +118,7 @@ namespace graphlab {
             
             typedef typename base_type::edge_buffer_record edge_buffer_record;
             edge_buffer_record record(source, target, edata);
-            base_type::edge_exchange.send(owning_proc, record);
+            //base_type::edge_exchange.send(owning_proc, record);
         } // end of add edge
 
         virtual void finalize() {
