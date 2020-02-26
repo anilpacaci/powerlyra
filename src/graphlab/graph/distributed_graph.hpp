@@ -707,6 +707,8 @@ namespace graphlab {
       std::string favorite = "source"; /* source or target */
       
       std::string metis_lookup_file = "";
+      
+      std::string output_file = "";
 
       
       // deprecated
@@ -762,6 +764,11 @@ namespace graphlab {
             if(rpc.procid() == 0)
                 logstream(LOG_EMPH) << "Graph option: lookup = "
                                     << metis_lookup_file << std::endl;
+        } else if(opt == "output_file") {
+            opts.get_graph_args().get_option("output_file", output_file);
+            if(rpc.procid() == 0)
+                logstream(LOG_EMPH) << "Graph option: output_file = "
+                                    << output_file << std::endl;
         }
 
         
@@ -788,7 +795,7 @@ namespace graphlab {
         }
       }
       set_ingress_method(ingress_method, bufsize, usehash, userecent, favorite,
-        threshold, nedges, nverts, interval, metis_lookup_file);
+        threshold, nedges, nverts, interval, metis_lookup_file, output_file);
     }
 
   public:
@@ -3361,7 +3368,8 @@ namespace graphlab {
         std::string favorite = "source",
         size_t threshold = 100, size_t nedges = 0, size_t nverts = 0,
         size_t interval = std::numeric_limits<size_t>::max(), 
-        std::string metis_lookup_file = "") {
+        std::string metis_lookup_file = "",
+        srd::string output_file = "") {
       if(ingress_ptr != NULL) { delete ingress_ptr; ingress_ptr = NULL; }
       if (method == "oblivious") {
         if (rpc.procid() == 0) logstream(LOG_EMPH) << "Use oblivious ingress, usehash: " << usehash
@@ -3389,8 +3397,8 @@ namespace graphlab {
         if (rpc.procid() == 0)logstream(LOG_EMPH) << "Use METIS ingress with lookup: " << metis_lookup_file << std::endl;
         ingress_ptr = new distributed_metis_ingress<VertexData, EdgeData>(rpc.dc(), *this, metis_lookup_file);
       } else if (method =="hdrf") {
-        if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use HDRF ingress" << std::endl;
-        ingress_ptr = new distributed_hdrf_ingress<VertexData, EdgeData>(rpc.dc(), *this, usehash, userecent);
+        if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use HDRF ingress with output: " << output_file << std::endl;
+        ingress_ptr = new distributed_hdrf_ingress<VertexData, EdgeData>(rpc.dc(), *this, output_file, usehash, userecent);
       } else if (method =="dbh") {
         if(rpc.procid() == 0) logstream(LOG_EMPH) << "Use DBH ingress" << std::endl;
         ingress_ptr = new distributed_dbh_ingress<VertexData, EdgeData>(rpc.dc(), *this);

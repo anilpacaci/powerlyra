@@ -86,7 +86,7 @@ namespace graphlab {
 
     public:
 
-        distributed_hdrf_ingress(distributed_control& dc, graph_type& graph, bool usehash = false, bool userecent = false) :
+        distributed_hdrf_ingress(distributed_control& dc, graph_type& graph, std::string output_file, bool usehash = false, bool userecent = false) :
         base_type(dc, graph),
         dht(-1), degree_dht(-1), proc_num_edges(dc.numprocs()), usehash(usehash), userecent(userecent) {
 
@@ -107,6 +107,8 @@ namespace graphlab {
             const procid_t owning_proc =
                     base_type::edge_decision.edge_to_proc_hdrf(source, target, dht[source], dht[target], degree_dht[source], degree_dht[target], proc_num_edges, usehash, userecent);
 
+            
+            
             typedef typename base_type::edge_buffer_record edge_buffer_record;
             edge_buffer_record record(source, target, edata);
             base_type::edge_exchange.send(owning_proc, record);
