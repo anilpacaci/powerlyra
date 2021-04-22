@@ -67,8 +67,11 @@ namespace graphlab {
     void add_vertex(vertex_id_type vid, std::vector<vertex_id_type>& adjacency_list,
                   const VertexData& vdata) {      
       const procid_t owning_proc = graph_hash::hash_vertex(vid) % base_type::rpc.numprocs();
-      
-      const vertex_buffer_record record(vid, vdata);      
+
+        logstream(LOG_EMPH)
+            << "Partitioning info - Vertex: \t " << vid << "\t partition: " << owning_proc << std::endl;
+
+        const vertex_buffer_record record(vid, vdata);
 
       base_type::vertex_exchange.send(owning_proc, record, omp_get_thread_num());
       

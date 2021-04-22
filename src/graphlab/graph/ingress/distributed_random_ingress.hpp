@@ -64,6 +64,10 @@ namespace graphlab {
                   const EdgeData& edata) {
       typedef typename base_type::edge_buffer_record edge_buffer_record;
       const procid_t owning_proc = base_type::edge_decision.edge_to_proc_random(source, target, base_type::rpc.numprocs());
+
+        logstream(LOG_EMPH)
+            << "Partitioning info - Edge: \t " << source << " - " << target << "\t partition: " << owning_proc << std::endl;
+
       const edge_buffer_record record(source, target, edata);
       base_type::edge_exchange.send(owning_proc, record);
     } // end of add edge
