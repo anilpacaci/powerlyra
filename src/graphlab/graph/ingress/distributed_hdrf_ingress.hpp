@@ -91,6 +91,9 @@ namespace graphlab {
       const procid_t owning_proc = 
         base_type::edge_decision.edge_to_proc_hdrf(source, target, dht[source], dht[target], degree_dht[source], degree_dht[target], proc_num_edges, usehash, userecent);
 
+        logstream(LOG_EMPH)
+            << "Partitioning info - Edge: \t " << source << " - " << target << "\t partition: " << owning_proc << std::endl;
+
       typedef typename base_type::edge_buffer_record edge_buffer_record;
       edge_buffer_record record(source, target, edata);
       base_type::edge_exchange.send(owning_proc, record);
